@@ -6,9 +6,10 @@ const {
   uninstallTool,
   readConnection,
 } = require('./hook-installer.cjs');
-const { TOOL_LABELS } = require('./http-server.cjs');
+const { TOOL_LABELS, showConnectConfirm, showConnectSuccess } = require('./connect-dialog.cjs');
+const { clearHookActivity } = require('./monitor-health.cjs');
 
-const TOOL_IDS = ['cursor', 'codex', 'claude', 'trae'];
+const TOOL_IDS = ['cursor', 'codex', 'claude'];
 
 function buildTrayIcon() {
   const svg = `
@@ -45,48 +46,32 @@ function createTray({ stateDir, writeState, getMainWindow }) {
       return;
     }
 
-    const consent = await dialog.showMessageBox({
-      type: 'question',
-      buttons: ['取消', '仅此授权'],
-      defaultId: 1,
-      cancelId: 0,
-      title: `连接 ${TOOL_LABELS[toolId]}`,
-      message: `将监控 ${TOOL_LABELS[toolId]} 的 Agent 状态`,
-      detail: [
-        detection.installHint || '',
-        detection.note || '',
-        '',
-        '仅写入 Hook 配置与本机状态文件。',
-        '不访问网络、不读取项目代码、不需要管理员权限。',
-        '可随时从菜单断开并撤销。',
-      ]
-        .filter(Boolean)
-        .join('\n'),
-    });
+    const current = readConnection(stateDir);
+    const consent = await showConnectConfirm(
+      getMainWindow,
+      detection,
+      current?.tool || null,
+    );
 
-    if (consent.response !== 1) {
+    if (!consent) {
       return;
     }
 
     try {
-      const current = readConnection(stateDir);
       if (current && current.tool !== toolId) {
         uninstallTool(stateDir, current.tool);
       }
       installToolHooks(stateDir, toolId);
+      clearHookActivity(stateDir);
       writeState({ tool: toolId, status: 'idle' });
-      await dialog.showMessageBox({
-        type: 'info',
-        title: '已连接',
-        message: `${TOOL_LABELS[toolId]} 监控已启用`,
-        detail: '若状态未更新，请重启对应 AI 工具。',
-      });
+      await showConnectSuccess(getMainWindow, toolId);
       rebuildMenu();
     } catch (error) {
       await dialog.showMessageBox({
         type: 'error',
         title: '连接失败',
-        message: error instanceof Error ? error.message : '未知错误',
+        message: '无法完成 Hook 安装',
+        detail: error instanceof Error ? error.message : '未知错误',
       });
     }
   }

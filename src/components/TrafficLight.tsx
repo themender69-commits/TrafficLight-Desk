@@ -9,6 +9,7 @@ interface TrafficLightProps {
   status: LightStatus;
   tool: AiTool;
   connected: boolean;
+  monitoring: boolean;
   onRefresh: () => void;
 }
 
@@ -53,6 +54,7 @@ export function TrafficLight({
   status,
   tool,
   connected,
+  monitoring,
   onRefresh,
 }: TrafficLightProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -92,6 +94,7 @@ export function TrafficLight({
               <ToolLogo
                 tool={tool}
                 connected={connected}
+                monitoring={monitoring}
                 onClick={togglePicker}
               />
             </div>

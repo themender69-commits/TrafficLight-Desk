@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import type { ToolInfo, AiTool } from '../types';
-import { API_BASE, TOOL_LABELS } from '../types';
+import type { ToolInfo } from '../types';
+import { API_BASE } from '../types';
 import { logoSrc } from '../utils/logoSrc';
 
 interface ToolPickerProps {
@@ -40,20 +40,16 @@ export function ToolPicker({
         return;
       }
 
-      const ok = window.confirm(
-        [
-          `连接 ${TOOL_LABELS[toolId as AiTool] || toolId}`,
-          '',
-          detection.installHint || '',
-          detection.note || '',
-          '',
-          '仅写入 Hook 配置与本机状态文件。',
-          '不访问网络、不读取项目代码、不需要管理员权限。',
-        ]
-          .filter(Boolean)
-          .join('\n'),
+      const confirmRes = await fetch(
+        `${API_BASE}/tools/${toolId}/connect/confirm`,
+        { method: 'POST' },
       );
-      if (!ok) {
+      const confirmData = await confirmRes.json();
+      if (!confirmRes.ok) {
+        setError(confirmData.error || '无法显示授权对话框');
+        return;
+      }
+      if (!confirmData.confirmed) {
         return;
       }
 
@@ -124,7 +120,9 @@ export function ToolPicker({
       </div>
 
       <ul className="tool-picker__list">
-        {tools.map((tool) => (
+        {tools
+          .filter((tool) => tool.supportsHooks)
+          .map((tool) => (
           <li key={tool.id}>
             <button
               type="button"
@@ -141,11 +139,13 @@ export function ToolPicker({
                 <span className="tool-picker__hint">
                   {!tool.supportsHooks
                     ? tool.unsupportedReason || '暂不支持'
-                    : tool.connected
-                      ? '已连接'
-                      : tool.found
-                        ? tool.configDir
-                        : tool.hint || '未检测到配置'}
+                    : tool.monitoring
+                      ? '监控中'
+                      : tool.connected
+                        ? '已连接，监控未激活'
+                        : tool.found
+                          ? tool.configDir
+                          : tool.hint || '未检测到配置'}
                 </span>
               </span>
             </button>

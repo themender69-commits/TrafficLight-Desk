@@ -8,6 +8,9 @@ export interface StatusPayload {
   message?: string;
   updatedAt: number;
   connected?: boolean;
+  /** Hook 近期有回调，监控有效 */
+  monitoring?: boolean;
+  lastHookAt?: number | null;
 }
 
 export interface ToolInfo {
@@ -16,6 +19,7 @@ export interface ToolInfo {
   found: boolean;
   supportsHooks: boolean;
   connected: boolean;
+  monitoring?: boolean;
   configDir?: string;
   installHint?: string;
   note?: string;
@@ -42,6 +46,7 @@ export const DEFAULT_STATUS: StatusPayload = {
   tool: 'cursor',
   updatedAt: Date.now(),
   connected: false,
+  monitoring: false,
 };
 
 export const API_BASE = 'http://127.0.0.1:9876';

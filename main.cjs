@@ -4,6 +4,7 @@ const fs = require('fs');
 const { createHttpServer } = require('./desktop/http-server.cjs');
 const { createTray } = require('./desktop/tray.cjs');
 const { createWindowLayout } = require('./desktop/window-layout.cjs');
+const { showConnectConfirm } = require('./desktop/connect-dialog.cjs');
 
 const STATE_DIR = path.join(app.getPath('home'), '.trafficlight-desk');
 const STATE_FILE = path.join(STATE_DIR, 'state.json');
@@ -103,6 +104,8 @@ app.whenReady().then(() => {
         windowLayout.setMenuOpen(open);
       }
     },
+    showConnectConfirm: (detection, currentToolId) =>
+      showConnectConfirm(() => mainWindow, detection, currentToolId),
   });
   createWindow();
   trayApi = createTray({

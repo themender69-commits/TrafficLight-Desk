@@ -6,6 +6,11 @@ const {
   uninstallTool,
   readConnection,
 } = require('./hook-installer.cjs');
+const {
+  buildConnectionStatus,
+  clearHookActivity,
+  recordHookActivity,
+} = require('./monitor-health.cjs');
 
 const TOOL_LABELS = {
   cursor: 'Cursor',
@@ -30,7 +35,15 @@ function jsonResponse(res, status, payload) {
   res.end(JSON.stringify(payload));
 }
 
-function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, setMenuOpen }) {
+function createHttpServer({
+  stateDir,
+  readState,
+  writeState,
+  onRestart,
+  onQuit,
+  setMenuOpen,
+  showConnectConfirm,
+}) {
   const port = Number(process.env.TRAFFICLIGHT_PORT || 9876);
 
   const server = http.createServer(async (req, res) => {
@@ -51,10 +64,11 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
       if (pathname === '/status' && req.method === 'GET') {
         const state = readState();
         const connection = readConnection(stateDir);
+        const health = buildConnectionStatus(connection, stateDir);
         jsonResponse(res, 200, {
           ...state,
           tool: connection?.tool || state.tool,
-          connected: Boolean(connection),
+          ...health,
         });
         return;
       }
@@ -62,6 +76,7 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
       if (pathname === '/status' && req.method === 'POST') {
         const body = await readBody(req);
         const payload = JSON.parse(body);
+        recordHookActivity(stateDir);
         jsonResponse(res, 200, writeState(payload));
         return;
       }
@@ -69,7 +84,7 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
       if (pathname === '/connection' && req.method === 'GET') {
         const connection = readConnection(stateDir);
         jsonResponse(res, 200, {
-          connected: Boolean(connection),
+          ...buildConnectionStatus(connection, stateDir),
           connection,
         });
         return;
@@ -77,12 +92,14 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
 
       if (pathname === '/tools' && req.method === 'GET') {
         const connection = readConnection(stateDir);
+        const health = buildConnectionStatus(connection, stateDir);
         const tools = detectAllTools().map((item) => ({
           id: item.tool,
           label: TOOL_LABELS[item.tool] || item.tool,
           found: item.found,
           supportsHooks: item.supportsHooks,
           connected: connection?.tool === item.tool,
+          monitoring: connection?.tool === item.tool && health.monitoring,
           configDir: item.found ? item.configDir : undefined,
           installHint: item.installHint,
           note: item.note,
@@ -105,6 +122,34 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
         return;
       }
 
+      const connectConfirmMatch = pathname.match(/^\/tools\/([a-z]+)\/connect\/confirm$/);
+      if (connectConfirmMatch && req.method === 'POST') {
+        const toolId = connectConfirmMatch[1];
+        const detection = detectTool(toolId);
+        if (!detection.supportsHooks) {
+          jsonResponse(res, 400, {
+            confirmed: false,
+            error: detection.unsupportedReason || '该工具暂不支持',
+          });
+          return;
+        }
+        if (!detection.found) {
+          jsonResponse(res, 400, {
+            confirmed: false,
+            error: detection.hint || '未找到配置目录',
+          });
+          return;
+        }
+        if (typeof showConnectConfirm !== 'function') {
+          jsonResponse(res, 500, { confirmed: false, error: 'dialog unavailable' });
+          return;
+        }
+        const current = readConnection(stateDir);
+        const confirmed = await showConnectConfirm(detection, current?.tool || null);
+        jsonResponse(res, 200, { confirmed });
+        return;
+      }
+
       const connectMatch = pathname.match(/^\/tools\/([a-z]+)\/connect$/);
       if (connectMatch && req.method === 'POST') {
         const toolId = connectMatch[1];
@@ -113,6 +158,7 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
           uninstallTool(stateDir, current.tool);
         }
         const result = installToolHooks(stateDir, toolId);
+        clearHookActivity(stateDir);
         writeState({ tool: toolId, status: 'idle' });
         jsonResponse(res, 200, {
           ok: true,
@@ -130,6 +176,7 @@ function createHttpServer({ stateDir, readState, writeState, onRestart, onQuit, 
         if (current) {
           uninstallTool(stateDir, current.tool);
         }
+        clearHookActivity(stateDir);
         writeState({ status: 'idle' });
         jsonResponse(res, 200, { ok: true, disconnected: true });
         return;

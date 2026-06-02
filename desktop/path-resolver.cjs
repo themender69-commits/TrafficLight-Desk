@@ -184,7 +184,7 @@ function detectTool(toolId) {
 }
 
 function detectAllTools() {
-  return ['cursor', 'codex', 'claude', 'trae'].map((id) => detectTool(id));
+  return ['cursor', 'codex', 'claude'].map((id) => detectTool(id));
 }
 
 module.exports = {
