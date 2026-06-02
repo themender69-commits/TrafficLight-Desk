@@ -1,0 +1,547 @@
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+  -webkit-app-region: drag;
+  user-select: none;
+}
+
+.app {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+}
+
+/* 仅红绿灯：留白只留给描边，避免上下大块透明区被阴影晕开成「渐变毛玻璃」 */
+.app:not(:has(.tool-picker)) {
+  justify-content: center;
+  align-items: center;
+  padding: 4px;
+}
+
+/* 菜单展开：菜单在左、红绿灯贴右 */
+.app:has(.tool-picker) {
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+/* ── 叠穿：外层毛玻璃 + 内层金属壳（v2 — 回退见 traffic-light.glass-v1-backup.css） ── */
+.traffic-light {
+  position: relative;
+  flex-shrink: 0;
+}
+
+/* 外层：半自主磨砂 — 亮暗混合渐变，少依赖壁纸 */
+.traffic-light__glass {
+  padding: 5px;
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.03) 34%,
+      transparent 50%
+    ),
+    linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.11) 0%,
+      rgba(36, 40, 48, 0.16) 52%,
+      rgba(255, 255, 255, 0.06) 100%
+    );
+  backdrop-filter: blur(16px) saturate(145%);
+  -webkit-backdrop-filter: blur(16px) saturate(145%);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    inset 0 0 0 1px rgba(0, 0, 0, 0.1);
+}
+
+/* 内层：嵌入槽里的红绿灯本体 */
+.traffic-light__shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  width: 88px;
+  padding: 14px 12px 16px;
+  background: linear-gradient(165deg, #2e2e2e 0%, #181818 50%, #1f1f1f 100%);
+  border-radius: 19px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 1px 4px rgba(0, 0, 0, 0.3),
+    0 0 0 1px rgba(0, 0, 0, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+/* ── 顶部图标 ── */
+.traffic-light__icon {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  overflow: visible;
+}
+
+.tool-logo {
+  position: relative;
+  width: 52px;
+  height: 52px;
+  padding: 0;
+  border: none;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow:
+    0 2px 8px rgba(0, 0, 0, 0.5),
+    inset 0 1px 0 rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+  overflow: hidden;
+}
+
+.tool-logo__image {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: cover;
+  padding: 8px;
+  box-sizing: border-box;
+}
+
+.tool-logo__badge {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.35);
+}
+
+.tool-logo__badge--on {
+  background: #22cc44;
+  box-shadow: 0 0 6px rgba(34, 204, 68, 0.8);
+}
+
+.tool-logo__badge--off {
+  background: #555;
+}
+
+.traffic-light__icon svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.traffic-light__divider {
+  width: 100%;
+  height: 1px;
+  margin: 10px 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.06) 20%,
+    rgba(255, 255, 255, 0.06) 80%,
+    transparent
+  );
+}
+
+/* ── 灯座 ── */
+.light-housing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 62px;
+  height: 62px;
+  border-radius: 14px;
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.5) 0%,
+    rgba(40, 40, 40, 0.3) 50%,
+    rgba(0, 0, 0, 0.4) 100%
+  );
+  box-shadow:
+    inset 0 2px 6px rgba(0, 0, 0, 0.7),
+    inset 0 -1px 2px rgba(255, 255, 255, 0.04);
+}
+
+/* ── 灯泡 ── */
+.light-bulb {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  position: relative;
+  transition: box-shadow 0.3s ease, background 0.3s ease, opacity 0.3s ease;
+}
+
+/* 玻璃高光 */
+.light-bulb::before {
+  content: '';
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  width: 14px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(255, 255, 255, 0.55) 0%,
+    rgba(255, 255, 255, 0) 70%
+  );
+  pointer-events: none;
+}
+
+.light-bulb::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 35% 30%,
+    rgba(255, 255, 255, 0.15) 0%,
+    transparent 50%
+  );
+  pointer-events: none;
+}
+
+/* ── 灭灯态 ── */
+.light-bulb--off.light-bulb--red {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #3a1515 0%,
+    #1a0808 50%,
+    #0d0404 100%
+  );
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 2px rgba(255, 50, 50, 0.08);
+}
+
+.light-bulb--off.light-bulb--yellow {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #3a3010 0%,
+    #1a1506 50%,
+    #0d0a03 100%
+  );
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 2px rgba(255, 200, 50, 0.06);
+}
+
+.light-bulb--off.light-bulb--green {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #103a18 0%,
+    #061a0a 50%,
+    #030d05 100%
+  );
+  box-shadow:
+    inset 0 3px 8px rgba(0, 0, 0, 0.8),
+    inset 0 -1px 2px rgba(50, 255, 100, 0.06);
+}
+
+/* ── 亮灯态 ── */
+.light-bulb--on.light-bulb--red {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #ff5555 0%,
+    #cc2222 45%,
+    #991111 100%
+  );
+  box-shadow:
+    0 0 12px rgba(255, 60, 60, 0.7),
+    0 0 28px rgba(255, 40, 40, 0.45),
+    0 0 48px rgba(255, 20, 20, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+}
+
+.light-bulb--on.light-bulb--yellow {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #ffe066 0%,
+    #f5a623 45%,
+    #c47d0a 100%
+  );
+  box-shadow:
+    0 0 12px rgba(255, 200, 50, 0.8),
+    0 0 28px rgba(255, 170, 30, 0.55),
+    0 0 48px rgba(255, 140, 0, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+
+.light-bulb--on.light-bulb--green {
+  background: radial-gradient(
+    circle at 40% 35%,
+    #66ff88 0%,
+    #22cc44 45%,
+    #118822 100%
+  );
+  box-shadow:
+    0 0 12px rgba(50, 255, 100, 0.7),
+    0 0 28px rgba(30, 220, 70, 0.45),
+    0 0 48px rgba(10, 180, 50, 0.2),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* ── 黄灯闪烁 ── */
+@keyframes yellow-flash {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 12px rgba(255, 200, 50, 0.8),
+      0 0 28px rgba(255, 170, 30, 0.55),
+      0 0 48px rgba(255, 140, 0, 0.25),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow:
+      0 0 4px rgba(255, 200, 50, 0.3),
+      0 0 8px rgba(255, 170, 30, 0.15),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.25);
+  }
+}
+
+@keyframes red-flash {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow:
+      0 0 12px rgba(255, 60, 60, 0.8),
+      0 0 28px rgba(255, 40, 40, 0.55),
+      0 0 48px rgba(255, 20, 20, 0.25),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow:
+      0 0 4px rgba(255, 60, 60, 0.3),
+      0 0 8px rgba(255, 40, 40, 0.15),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.3);
+  }
+}
+
+.light-bulb--flash.light-bulb--yellow {
+  animation: yellow-flash 1.2s ease-in-out infinite;
+}
+
+.light-bulb--flash.light-bulb--red {
+  animation: red-flash 1s ease-in-out infinite;
+}
+
+/* ── 状态标签（悬停显示） ── */
+.traffic-light__label {
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  font: 11px/1.4 -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  color: rgba(255, 255, 255, 0.7);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  -webkit-app-region: no-drag;
+}
+
+.traffic-light:hover .traffic-light__label {
+  opacity: 1;
+}
+
+/* ── 布局：菜单在左，红绿灯在右 ── */
+.traffic-light-layout {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+.traffic-light-layout:has(.tool-picker) {
+  justify-content: flex-end;
+  align-items: flex-start;
+}
+
+.traffic-light-layout:not(:has(.tool-picker)) {
+  align-items: center;
+  height: 100%;
+}
+
+/* ── 工具选择菜单（侧边） ── */
+.tool-picker {
+  flex-shrink: 0;
+  width: 280px;
+  max-height: calc(100vh - 16px);
+  overflow: auto;
+  background: #1f1f1f;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+  color: #f5f5f5;
+  font: 12px/1.4 -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  -webkit-app-region: no-drag;
+}
+
+.tool-picker__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 10px 8px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tool-picker__title {
+  font-weight: 600;
+}
+
+.tool-picker__close {
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.tool-picker__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.tool-picker__list {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+}
+
+.tool-picker__item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-picker__item:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.tool-picker__item--active {
+  background: rgba(34, 204, 68, 0.12);
+}
+
+.tool-picker__item:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tool-picker__icon {
+  width: 28px;
+  height: 28px;
+  padding: 4px;
+  border-radius: 6px;
+  background: #fff;
+  flex-shrink: 0;
+}
+
+.tool-picker__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tool-picker__label {
+  font-weight: 600;
+}
+
+.tool-picker__hint {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 10px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tool-picker__disconnect {
+  width: calc(100% - 16px);
+  margin: 0 8px 8px;
+  padding: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: transparent;
+  color: #ff8a8a;
+  cursor: pointer;
+}
+
+.tool-picker__footer {
+  display: flex;
+  gap: 8px;
+  margin: 0;
+  padding: 10px 8px 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tool-picker__action {
+  flex: 1;
+  padding: 9px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #f0f0f0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tool-picker__action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.tool-picker__action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.tool-picker__action--quit {
+  color: #ff8a8a;
+  border-color: rgba(255, 120, 120, 0.25);
+  background: rgba(255, 80, 80, 0.08);
+}
+
+.tool-picker__action--quit:hover:not(:disabled) {
+  background: rgba(255, 80, 80, 0.16);
+}
+
+.tool-picker__error {
+  padding: 0 12px 8px;
+  color: #ff8a8a;
+  font-size: 11px;
+}
