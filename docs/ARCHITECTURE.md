@@ -158,10 +158,10 @@ npm run dist:win # Windows 便携 exe → release/
 
 | 平台 | 产物 | 说明 |
 |------|------|------|
-| Windows | `TrafficLight-Desk-*-win-portable.exe` | 便携版，双击即用，无需安装 |
-| macOS | `TrafficLight-Desk-*-mac.dmg` | 标准安装包 |
+| Windows | `release/TrafficLight-Desk-*-win-portable.exe` | 便携版，双击即用 |
+| macOS | `release/TrafficLight-Desk-*-mac.dmg` | 标准安装包 |
 
-`release/` 目录在 `.gitignore` 中，二进制不提交仓库；分发请用 [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 或本地 `npm run dist:*` 构建。
+源码与打包产物目录分离：`release/` 仅存本地构建结果（`.gitignore` 忽略二进制，保留 `release/README.md`）。正式分发走 **GitHub Releases**，不把 exe 提交进仓库。
 
 打包后 Hook 脚本路径由 `desktop/paths.cjs` 解析（`extraResources` 中的 `cursor-hooks/`）。
 

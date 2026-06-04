@@ -12,6 +12,7 @@
 - 文档：`docs/ARCHITECTURE.md`、完善 README
 - Windows 便携版 exe 打包（`npm run dist:win` / `scripts/pack-win.sh`）
 - 双击 exe 单实例启动；Windows Hook 安装自动使用 `bash` 路径
+- `release/README.md`：打包产物目录说明（二进制仍不提交 Git）
 
 ### Changed
 

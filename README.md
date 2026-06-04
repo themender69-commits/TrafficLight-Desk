@@ -210,10 +210,10 @@ npm run dist:win        # 同上（Windows exe）
 
 产物目录：`release/`（已在 `.gitignore`，不提交仓库）
 
-| 平台 | 文件名示例 |
-|------|------------|
-| Windows | `TrafficLight-Desk-0.1.0-win-portable.exe` |
-| macOS | `TrafficLight-Desk-0.1.0-mac.dmg` |
+| 平台 | 文件名示例 | 获取方式 |
+|------|------------|----------|
+| Windows | `TrafficLight-Desk-0.1.0-win-portable.exe` | [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 或本地 `release/` |
+| macOS | `TrafficLight-Desk-0.1.0-mac.dmg` | 本地 `npm run dist:mac` → `release/` |
 
 ---
 
@@ -238,6 +238,7 @@ TrafficLight Desk/
 │   └── utils/                  # logoSrc 等
 ├── cursor-hooks/               # Hook 脚本源文件 + install-hooks.sh
 ├── public/logos/               # 各工具 Logo（SVG）
+├── release/                    # 打包产物（exe/dmg，不提交 Git；见 release/README.md）
 ├── scripts/                    # start / stop / restart / pack-win
 └── docs/
     └── ARCHITECTURE.md         # 架构与数据流
