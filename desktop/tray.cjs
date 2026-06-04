@@ -1,5 +1,4 @@
 const { Menu, Tray, nativeImage, dialog } = require('electron');
-const path = require('path');
 const { detectTool } = require('./path-resolver.cjs');
 const {
   installToolHooks,
@@ -82,6 +81,7 @@ function createTray({ stateDir, writeState, getMainWindow }) {
       return;
     }
     uninstallTool(stateDir, current.tool);
+    clearHookActivity(stateDir);
     writeState({ status: 'idle' });
     rebuildMenu();
   }
@@ -95,9 +95,8 @@ function createTray({ stateDir, writeState, getMainWindow }) {
       const detection = detectTool(toolId);
       const connected = connection?.tool === toolId;
       const suffix = connected ? ' ✓' : detection.found ? '' : '（未安装）';
-      const prefix = !detection.supportsHooks ? '· ' : '';
       return {
-        label: `${prefix}${TOOL_LABELS[toolId]}${suffix}`,
+        label: `${TOOL_LABELS[toolId]}${suffix}`,
         enabled: detection.supportsHooks,
         click: () => connectTool(toolId),
       };

@@ -18,6 +18,13 @@
 - Logo 状态点：绿 = 监控中，灰 = 未连接或未激活
 - ToolPicker 过滤不支持 Hook 的工具
 
+### Removed
+
+- Trae 相关代码与 Logo 资源（菜单已不支持）
+- `cursor-hooks/logo/` 重复 Logo 目录（UI 使用 `public/logos/`）
+- 毛玻璃 v1 样式备份文件
+- 未完成的 `release/` 本地打包产物
+
 ## [0.1.0] - 2026-06-02
 
 ### Added

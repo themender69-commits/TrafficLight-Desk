@@ -171,7 +171,6 @@ chmod +x cursor-hooks/install-hooks.sh
 - **叠穿毛玻璃外框** — 外层 `.traffic-light__glass`（磨砂 + 渐变），内层 `.traffic-light__shell`（深色金属壳）
 - **自适应背景** — 玻璃层使用半自主渐变，深浅壁纸下表现较稳定
 - **布局** — 仅红绿灯时窗口内居中；菜单展开时菜单居左、灯居右
-- **样式备份** — 毛玻璃 v1 样式见 `src/styles/traffic-light.glass-v1-backup.css`
 
 更多架构说明见 [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)。
 

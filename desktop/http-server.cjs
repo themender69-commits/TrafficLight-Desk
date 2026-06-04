@@ -16,8 +16,13 @@ const TOOL_LABELS = {
   cursor: 'Cursor',
   codex: 'Codex',
   claude: 'Claude Code',
-  trae: 'Trae',
 };
+
+const SUPPORTED_TOOLS = new Set(Object.keys(TOOL_LABELS));
+
+function normalizeTool(tool) {
+  return SUPPORTED_TOOLS.has(tool) ? tool : 'cursor';
+}
 
 function readBody(req) {
   return new Promise((resolve, reject) => {
@@ -67,7 +72,7 @@ function createHttpServer({
         const health = buildConnectionStatus(connection, stateDir);
         jsonResponse(res, 200, {
           ...state,
-          tool: connection?.tool || state.tool,
+          tool: normalizeTool(connection?.tool || state.tool),
           ...health,
         });
         return;

@@ -1,6 +1,6 @@
 export type LightStatus = 'idle' | 'working' | 'done' | 'waiting';
 
-export type AiTool = 'cursor' | 'codex' | 'claude' | 'trae';
+export type AiTool = 'cursor' | 'codex' | 'claude';
 
 export interface StatusPayload {
   status: LightStatus;
@@ -38,7 +38,6 @@ export const TOOL_LABELS: Record<AiTool, string> = {
   cursor: 'Cursor',
   codex: 'Codex',
   claude: 'Claude Code',
-  trae: 'Trae',
 };
 
 export const DEFAULT_STATUS: StatusPayload = {

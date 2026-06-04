@@ -16,7 +16,6 @@ const DEFAULT_STATE = {
 
 let mainWindow = null;
 let watchers = [];
-let trayApi = null;
 let windowLayout = null;
 
 function ensureStateDir() {
@@ -108,7 +107,7 @@ app.whenReady().then(() => {
       showConnectConfirm(() => mainWindow, detection, currentToolId),
   });
   createWindow();
-  trayApi = createTray({
+  createTray({
     stateDir: STATE_DIR,
     writeState,
     getMainWindow: () => mainWindow,

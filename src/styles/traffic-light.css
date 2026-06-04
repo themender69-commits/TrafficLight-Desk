@@ -40,7 +40,7 @@ body,
   align-items: flex-start;
 }
 
-/* ── 叠穿：外层毛玻璃 + 内层金属壳（v2 — 回退见 traffic-light.glass-v1-backup.css） ── */
+/* ── 叠穿：外层毛玻璃 + 内层金属壳 ── */
 .traffic-light {
   position: relative;
   flex-shrink: 0;
@@ -140,12 +140,6 @@ body,
 
 .tool-logo__badge--off {
   background: #555;
-}
-
-.traffic-light__icon svg {
-  width: 100%;
-  height: 100%;
-  display: block;
 }
 
 .traffic-light__divider {

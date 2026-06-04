@@ -131,7 +131,6 @@ Hook 从 `~/.trafficlight-desk/connection.json` 读取当前监控工具 ID。
 
 - 不用 `filter: drop-shadow` 于透明窗口根节点（会在留白区晕开、上下无硬边）
 - 窗口尺寸紧贴内容，避免大块透明区造成视觉噪声
-- v1 毛玻璃样式备份：`src/styles/traffic-light.glass-v1-backup.css`
 
 ---
 

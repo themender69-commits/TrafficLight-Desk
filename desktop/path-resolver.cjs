@@ -30,40 +30,6 @@ function fileExists(file) {
   }
 }
 
-function buildCandidate(envVar, ...defaults) {
-  const candidates = [];
-  if (process.env[envVar]) {
-    candidates.push(process.env[envVar]);
-  }
-  candidates.push(...defaults);
-  return [...new Set(candidates.map((p) => path.resolve(p)))];
-}
-
-function detectConfigDir(envVar, defaultSubdir) {
-  const home = getHomeDir();
-  const candidates = buildCandidate(envVar, path.join(home, defaultSubdir));
-
-  for (const candidate of candidates) {
-    const resolved = tryRealpath(candidate);
-    if (dirExists(resolved)) {
-      return {
-        found: true,
-        configDir: resolved,
-        source: process.env[envVar] && candidate.startsWith(process.env[envVar])
-          ? envVar
-          : 'default',
-      };
-    }
-  }
-
-  return {
-    found: false,
-    configDir: path.join(home, defaultSubdir),
-    source: 'missing',
-    hint: `未找到配置目录。若使用 ${envVar}，请确认环境变量；否则请先启动一次对应应用。`,
-  };
-}
-
 function detectCursor() {
   const home = getHomeDir();
   const defaultDir = path.join(home, '.cursor');
@@ -150,24 +116,6 @@ function detectClaude() {
   };
 }
 
-function detectTrae() {
-  const home = getHomeDir();
-  const env = process.env.TRAE_ENV === 'cn' ? '.trae-cn' : '.trae';
-  const base = detectConfigDir('TRAE_CONFIG_DIR', env);
-  const altEnv = env === '.trae' ? '.trae-cn' : '.trae';
-  const altPath = path.join(home, altEnv);
-  const altFound = dirExists(tryRealpath(altPath));
-
-  return {
-    ...base,
-    tool: 'trae',
-    altConfigDir: altFound ? tryRealpath(altPath) : null,
-    supportsHooks: false,
-    unsupportedReason:
-      'Trae 目前没有类似 Cursor 的官方 Agent Hook，暂无法自动监控状态。',
-  };
-}
-
 function detectTool(toolId) {
   switch (toolId) {
     case 'cursor':
@@ -176,8 +124,6 @@ function detectTool(toolId) {
       return detectCodex();
     case 'claude':
       return detectClaude();
-    case 'trae':
-      return detectTrae();
     default:
       return { found: false, tool: toolId, supportsHooks: false };
   }
@@ -194,5 +140,4 @@ module.exports = {
   detectCursor,
   detectCodex,
   detectClaude,
-  detectTrae,
 };

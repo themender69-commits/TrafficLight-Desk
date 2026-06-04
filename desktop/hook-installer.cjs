@@ -246,10 +246,6 @@ function installToolHooks(stateDir, toolId) {
     return installForAdapter(stateDir, 'cursor', 'codex');
   }
 
-  if (toolId === 'trae') {
-    throw new Error(detection.unsupportedReason || 'Trae 暂不支持 Hook 监控');
-  }
-
   return installForAdapter(stateDir, toolId, toolId);
 }
 
@@ -300,5 +296,4 @@ module.exports = {
   installToolHooks,
   uninstallTool,
   readConnection,
-  detectTool,
 };
