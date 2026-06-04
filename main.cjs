@@ -50,6 +50,23 @@ function watchStateFile() {
   watchers.push(watcher);
 }
 
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    const win = mainWindow;
+    if (win) {
+      if (win.isMinimized()) {
+        win.restore();
+      }
+      win.show();
+      win.focus();
+    }
+  });
+}
+
 function createWindow() {
   const { width: screenW } = screen.getPrimaryDisplay().workAreaSize;
   windowLayout = createWindowLayout(() => mainWindow);
@@ -69,7 +86,9 @@ function createWindow() {
     },
   });
 
-  mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  if (process.platform === 'darwin') {
+    mainWindow.setVisibleOnAllWorkspaces(true, { visibleOnFullScreen: true });
+  }
   mainWindow.setAlwaysOnTop(true, 'floating');
 
   const isDev = process.env.TRAFFICLIGHT_DEV === '1';
@@ -85,6 +104,9 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  if (!gotTheLock) {
+    return;
+  }
   ensureStateDir();
   watchStateFile();
   createHttpServer({

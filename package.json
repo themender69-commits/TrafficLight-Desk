@@ -11,7 +11,7 @@
     "preview": "vite build && env -u ELECTRON_RUN_AS_NODE electron .",
     "dist": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder",
     "dist:mac": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --mac",
-    "dist:win": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --win"
+    "dist:win": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --win --x64"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -58,12 +58,18 @@
     },
     "win": {
       "target": [
-        "portable"
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
-      "artifactName": "TrafficLight-Desk-${version}-portable.${ext}"
+      "artifactName": "TrafficLight-Desk-${version}-win-portable.${ext}",
+      "signAndEditExecutable": false
     },
     "portable": {
-      "artifactName": "TrafficLight-Desk-${version}-portable.${ext}"
+      "artifactName": "TrafficLight-Desk-${version}-win-portable.${ext}"
     }
   }
 }

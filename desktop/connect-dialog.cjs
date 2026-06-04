@@ -76,10 +76,6 @@ async function showConnectSuccess(getMainWindow, toolId) {
 
 module.exports = {
   TOOL_LABELS,
-  toolLabel,
-  buildConnectDetail,
-  buildConnectOptions,
-  buildSuccessOptions,
   showConnectConfirm,
   showConnectSuccess,
 };

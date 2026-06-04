@@ -18,8 +18,16 @@ const CURSOR_HOOK_ENTRIES = {
 const CLAUDE_HOOK_ENTRIES = {
   UserPromptSubmit: ['tl-on-prompt.sh'],
   PostToolUse: ['tl-on-tool.sh'],
-  PreToolUse: [{ script: 'tl-on-wait.sh', matcher: 'AskQuestion|SwitchMode' }],
-  Notification: [{ script: 'tl-on-wait.sh', matcher: 'permission_prompt' }],
+  PreToolUse: [
+    {
+      script: 'tl-on-wait.sh',
+      matcher: 'AskQuestion|AskUserQuestion|SwitchMode|ExitPlanMode',
+    },
+  ],
+  Notification: [
+    { script: 'tl-on-wait.sh', matcher: 'permission_prompt|elicitation_dialog' },
+  ],
+  PermissionRequest: ['tl-on-wait.sh'],
   Stop: ['tl-on-stop.sh'],
   SessionEnd: ['tl-on-session-end.sh'],
 };
@@ -55,6 +63,23 @@ function hookCommandAbsolute(hooksDir, scriptName) {
   return path.join(hooksDir, scriptName);
 }
 
+/** Windows 上 Hook 脚本需经 bash 执行（Git Bash / Cursor 内置） */
+function hookCommandResolved(hooksDir, configDir, scriptName) {
+  if (process.platform === 'win32') {
+    const posix = hookCommandAbsolute(hooksDir, scriptName).replace(/\\/g, '/');
+    return `bash "${posix}"`;
+  }
+  return hookCommand(configDir, scriptName);
+}
+
+function hookCommandResolvedAbsolute(hooksDir, scriptName) {
+  if (process.platform === 'win32') {
+    const posix = hookCommandAbsolute(hooksDir, scriptName).replace(/\\/g, '/');
+    return `bash "${posix}"`;
+  }
+  return hookCommandAbsolute(hooksDir, scriptName);
+}
+
 function readJson(file, fallback) {
   try {
     return JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -81,10 +106,10 @@ function mergeCursorHooks(hooksFile, hooksDir, configDir) {
 
     const newEntries = items.map((item) => {
       if (typeof item === 'string') {
-        return { command: hookCommand(configDir, item) };
+        return { command: hookCommandResolved(hooksDir, configDir, item) };
       }
       return {
-        command: hookCommand(configDir, item.script),
+        command: hookCommandResolved(hooksDir, configDir, item.script),
         matcher: item.matcher,
       };
     });
@@ -114,7 +139,7 @@ function mergeClaudeHooks(settingsFile, hooksDir) {
       const group = {
         hooks: [
           {
-            command: hookCommandAbsolute(hooksDir, script),
+            command: hookCommandResolvedAbsolute(hooksDir, script),
             type: 'command',
           },
         ],

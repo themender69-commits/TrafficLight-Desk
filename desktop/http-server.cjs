@@ -229,4 +229,6 @@ function createHttpServer({
   return server;
 }
 
-module.exports = { createHttpServer, TOOL_LABELS };
+module.exports = {
+  createHttpServer,
+};

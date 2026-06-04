@@ -10,6 +10,8 @@
 - `POST /tools/:id/connect/confirm` 端点
 - `GET /status` 返回 `monitoring`、`lastHookAt` 字段
 - 文档：`docs/ARCHITECTURE.md`、完善 README
+- Windows 便携版 exe 打包（`npm run dist:win` / `scripts/pack-win.sh`）
+- 双击 exe 单实例启动；Windows Hook 安装自动使用 `bash` 路径
 
 ### Changed
 
@@ -17,13 +19,19 @@
 - 连接弹窗文案精简
 - Logo 状态点：绿 = 监控中，灰 = 未连接或未激活
 - ToolPicker 过滤不支持 Hook 的工具
+- 精简未使用的 API 导出与 `StatusPayload.message` 字段
+- 合并 CHANGELOG / README / ARCHITECTURE 文档
 
 ### Removed
 
 - Trae 相关代码与 Logo 资源（菜单已不支持）
 - `cursor-hooks/logo/` 重复 Logo 目录（UI 使用 `public/logos/`）
 - 毛玻璃 v1 样式备份文件
-- 未完成的 `release/` 本地打包产物
+- 未完成的 `release/` 本地打包产物（`win-unpacked/`、`builder-debug.yml` 等中间文件）
+
+### Fixed
+
+- Claude Code 权限弹窗（如 Bash 批准）现正确亮红灯：识别 `PermissionRequest` / `Notification`
 
 ## [0.1.0] - 2026-06-02
 

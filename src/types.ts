@@ -5,7 +5,6 @@ export type AiTool = 'cursor' | 'codex' | 'claude';
 export interface StatusPayload {
   status: LightStatus;
   tool?: AiTool;
-  message?: string;
   updatedAt: number;
   connected?: boolean;
   /** Hook 近期有回调，监控有效 */

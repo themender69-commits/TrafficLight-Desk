@@ -59,6 +59,10 @@
 
 ## 快速开始
 
+### Windows 用户（推荐）
+
+从 [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 下载 `TrafficLight-Desk-*-win-portable.exe`，**双击运行**即可（便携版，无需安装）。详见下方 [打包分发](#打包分发)。
+
 ### 开发模式（热更新）
 
 ```bash
@@ -110,9 +114,15 @@ chmod +x scripts/*.sh
 |------|------|
 | `beforeSubmitPrompt` / `UserPromptSubmit` | 黄灯 |
 | `postToolUse` / `PostToolUse` | 保持黄灯 |
-| 需用户点击确认（AskQuestion 等） | 红灯 |
+| 需用户确认（见下） | 红灯 |
 | `stop` / `Stop`（防抖 2.5s） | 绿灯 |
 | `sessionEnd` / `SessionEnd` | 全灭 |
+
+**红灯触发（Cursor）：** `preToolUse`（AskQuestion / SwitchMode）、`beforeShellExecution`、`beforeMCPExecution`
+
+**红灯触发（Claude Code）：** `PermissionRequest`、`Notification`（permission_prompt）、`PreToolUse`（AskUserQuestion / ExitPlanMode 等）
+
+> Hook 脚本更新后，请在 App 内 **断开并重新连接** 对应工具，以写入新配置。
 
 ### 命令行手动安装 Hook（可选）
 
@@ -178,10 +188,32 @@ chmod +x cursor-hooks/install-hooks.sh
 
 ## 打包分发
 
+### 给最终用户（Windows）
+
+1. 从 [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 下载 `TrafficLight-Desk-*-win-portable.exe`（或本地构建见下）
+2. **双击 exe** 即可运行（便携版，无需安装）
+3. 首次运行若被 SmartScreen 拦截，点「更多信息」→「仍要运行」
+4. 在 App 内点击 Logo → 选择要监控的工具（Cursor / Claude）→ 授权 Hook
+5. Windows 上 Hook 脚本依赖 **Git Bash**（Cursor / Claude Code 通常已自带）；若连接失败，请先安装 [Git for Windows](https://git-scm.com/download/win)
+
+状态与配置保存在 `%USERPROFILE%\.trafficlight-desk\`。
+
+### 开发者打包
+
 ```bash
-npm run dist:mac   # macOS DMG → release/
-npm run dist:win   # Windows Portable → release/
+chmod +x scripts/pack-win.sh
+./scripts/pack-win.sh   # Windows 便携 exe → release/
+
+npm run dist:mac        # macOS DMG → release/
+npm run dist:win        # 同上（Windows exe）
 ```
+
+产物目录：`release/`（已在 `.gitignore`，不提交仓库）
+
+| 平台 | 文件名示例 |
+|------|------------|
+| Windows | `TrafficLight-Desk-0.1.0-win-portable.exe` |
+| macOS | `TrafficLight-Desk-0.1.0-mac.dmg` |
 
 ---
 
@@ -206,7 +238,7 @@ TrafficLight Desk/
 │   └── utils/                  # logoSrc 等
 ├── cursor-hooks/               # Hook 脚本源文件 + install-hooks.sh
 ├── public/logos/               # 各工具 Logo（SVG）
-├── scripts/                    # start / stop / restart
+├── scripts/                    # start / stop / restart / pack-win
 └── docs/
     └── ARCHITECTURE.md         # 架构与数据流
 ```

@@ -11,6 +11,8 @@ import json, sys, re
 d = json.load(sys.stdin)
 event = d.get('hook_event_name', '')
 
+WAIT_TOOLS = ('AskQuestion', 'AskUserQuestion', 'SwitchMode', 'ExitPlanMode')
+
 def auto_run_shell(cmd: str) -> bool:
     cmd = (cmd or '').strip()
     if not cmd:
@@ -27,7 +29,19 @@ def auto_run_shell(cmd: str) -> bool:
     )
     return any(re.match(p, cmd) for p in safe)
 
-if event == 'preToolUse':
+# ── Claude Code ──
+if event == 'Notification':
+    if d.get('notification_type') in ('permission_prompt', 'elicitation_dialog'):
+        print('1')
+    else:
+        print('0')
+elif event == 'PermissionRequest':
+    print('1')
+elif event == 'PreToolUse':
+    tool = (d.get('tool_name') or '').strip()
+    print('1' if tool in WAIT_TOOLS else '0')
+# ── Cursor（保持原逻辑不变）──
+elif event == 'preToolUse':
     tool = (d.get('tool_name') or '').strip()
     if tool in ('AskQuestion', 'SwitchMode'):
         print('1')
