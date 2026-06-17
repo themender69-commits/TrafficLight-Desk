@@ -44,12 +44,12 @@ else:
 current="$(tl_read_status)"
 [[ "$current" == "waiting" ]] && exit 0
 
-# Agent 已标记 completed → 短防抖；否则略长一点防误绿
+# completed（含 Ask 纯文本）→ 短防抖；否则略长一点防误绿
 done_delay="$(printf '%s' "$input" | python3 -c "
 import json, sys
 d = json.load(sys.stdin)
 status = (d.get('status') or '').lower()
-print('0.5' if status == 'completed' else '1.0')
+print('0.2' if status == 'completed' else '0.5')
 ")"
 TL_DONE_DEBOUNCE_SEC="$done_delay" tl_schedule_done "$PLUGIN_DIR"
 exit 0

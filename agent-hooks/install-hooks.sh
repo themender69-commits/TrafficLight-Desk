@@ -1,5 +1,6 @@
 #!/bin/bash
-# 将 TrafficLight hooks 安装到 Cursor（自动探测 ~/.cursor 或 CURSOR_CONFIG_DIR）
+# 将 agent-hooks/ 中的共享脚本安装到 Cursor（CLI 快捷方式；Codex 同路径，Claude 请用 App 连接）
+# 自动探测 ~/.cursor 或 CURSOR_CONFIG_DIR
 set -euo pipefail
 
 HOOKS_SRC="$(cd "$(dirname "$0")" && pwd)"

@@ -16,6 +16,7 @@
 
 ### Changed
 
+- 重命名 `cursor-hooks/` → **`agent-hooks/`**（共享 Hook 源码，避免误以为仅 Cursor；打包路径同步）
 - 工具选择菜单移除 Trae（暂无官方 Hook 支持）
 - 连接弹窗文案精简
 - Logo 状态点：绿 = 监控中，灰 = 未连接或未激活

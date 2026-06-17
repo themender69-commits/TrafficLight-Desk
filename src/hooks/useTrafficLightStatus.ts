@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import type { StatusPayload } from '../types';
 import { API_BASE, DEFAULT_STATUS } from '../types';
 
-const POLL_MS = 400;
+const POLL_MS = 200;
 
 async function fetchStatus(): Promise<StatusPayload> {
   try {

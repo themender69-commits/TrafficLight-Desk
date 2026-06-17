@@ -98,6 +98,8 @@ chmod +x scripts/*.sh
 
 连接时会弹出原生授权对话框（简要说明本地 Hook 写入范围）。切换工具时会自动卸载上一工具的 Hook。
 
+**脚本目录命名：** 源码在 `agent-hooks/`（Cursor / Codex / Claude **共用**同一套 `.sh` / `.py`）。App 连接时按工具写入不同配置（Cursor/Codex → `~/.cursor/hooks.json`，Claude → `~/.claude/settings.json`）。
+
 | 工具 | 自动探测 | Hook 监控 |
 |------|----------|-----------|
 | Cursor | `~/.cursor` 或 `CURSOR_CONFIG_DIR` | ✅ |
@@ -127,9 +129,11 @@ chmod +x scripts/*.sh
 ### 命令行手动安装 Hook（可选）
 
 ```bash
-chmod +x cursor-hooks/install-hooks.sh
-./cursor-hooks/install-hooks.sh
+chmod +x agent-hooks/install-hooks.sh
+./agent-hooks/install-hooks.sh
 ```
+
+> 该脚本仅快捷安装到 **Cursor**（Codex 同路径）。Claude 请在 App 内选择「Claude Code」连接。
 
 ---
 
@@ -237,7 +241,9 @@ TrafficLight Desk/
 │   ├── hooks/                  # useTrafficLightStatus（轮询 /status）
 │   ├── styles/                 # traffic-light.css
 │   └── utils/                  # logoSrc 等
-├── cursor-hooks/               # Hook 脚本源文件 + install-hooks.sh
+├── agent-hooks/                # 共享 Hook 脚本源（Cursor/Codex/Claude）+ install-hooks.sh
+│   ├── approval-catalog.json   # 需用户点击的确认场景清单
+│   └── install-hooks.sh        # CLI：仅安装到 Cursor
 ├── public/logos/               # 各工具 Logo（SVG）
 ├── release/                    # 打包产物（exe/dmg，不提交 Git；见 release/README.md）
 ├── scripts/                    # start / stop / restart / pack-win

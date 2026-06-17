@@ -42,11 +42,12 @@
     ],
     "extraResources": [
       {
-        "from": "cursor-hooks",
-        "to": "cursor-hooks",
+        "from": "agent-hooks",
+        "to": "agent-hooks",
         "filter": [
           "**/*.sh",
-          "**/*.py"
+          "**/*.py",
+          "**/*.json"
         ]
       }
     ],

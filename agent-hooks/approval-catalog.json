@@ -32,11 +32,11 @@
     "stub_post_tool_use": {
       "condition": "duration < 20 且 tool_output.output 为空",
       "observed_in_logs": "git push Allow 等待前 duration≈0.527ms",
-      "file": "cursor-hooks/tl-on-tool.sh"
+      "file": "agent-hooks/tl-on-tool.sh"
     },
     "safe_shell_chain": {
       "rule": "按 && / ; 拆段，全段 safe 才 skip；cd && git push 必须 schedule",
-      "file": "cursor-hooks/tl-approval-lib.py"
+      "file": "agent-hooks/tl-approval-lib.py"
     },
     "app_side": {
       "pending_watch": "desktop/pending-watch.cjs — 监视 pending-approval 文件",
@@ -357,9 +357,14 @@
     {
       "date": "2026-06-17",
       "changes": [
-        "初版 catalog + C01 Allowlist 截图场景",
-        "cd&& 链式判定、stub postToolUse、pending-watch、Tink",
-        "C07 ExitPlanMode matcher、C12 subagentStart、X01 postToolUseFailure"
+        "初版 catalog + C01 Allowlist；cd&& 链式判定、stub postToolUse",
+        "pending-watch、Tink；C07/C12/X01 Hook 注册"
+      ]
+    },
+    {
+      "date": "2026-06-17",
+      "changes": [
+        "目录重命名 cursor-hooks → agent-hooks（共享 Cursor/Codex/Claude 脚本源）"
       ]
     }
   ]

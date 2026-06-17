@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Shell/MCP 是否会出现 Run/Allow 批准框。
 
-完整场景清单见同目录 approval-catalog.json（登记新框型后再改本文件）。
-摘要：Cursor 需点击约 12 类；catalog 与 hook 注册见 approval-catalog.json。
+完整场景清单见同目录 approval-catalog.json。
+脚本位于 agent-hooks/，安装时复制到 Cursor（~/.cursor）或 Claude（~/.claude）。
 """
 import json
 import re

@@ -1,5 +1,5 @@
 #!/bin/bash
-# Hook 状态机自测 — 对应验收三条标准
+# Hook 状态机自测 — 对应 approval-catalog.json 与 agent-hooks/
 set -euo pipefail
 
 APP_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -221,7 +221,7 @@ reset_idle
 run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
 run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse"}'
 run_hook tl-on-stop.sh '{"hook_event_name":"stop","status":"completed"}'
-sleep 0.8
+sleep 0.35
 assert_status "stop 防抖后 done" "done"
 echo ""
 
