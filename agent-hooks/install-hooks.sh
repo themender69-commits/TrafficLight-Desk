@@ -27,6 +27,7 @@ mkdir -p "$TL_HOOKS_DIR"
 cp "$HOOKS_SRC"/*.sh "$TL_HOOKS_DIR/"
 cp "$HOOKS_SRC"/*.py "$TL_HOOKS_DIR/" 2>/dev/null || true
 cp "$HOOKS_SRC"/approval-catalog.json "$TL_HOOKS_DIR/" 2>/dev/null || true
+cp "$HOOKS_SRC"/VERSION "$TL_HOOKS_DIR/" 2>/dev/null || true
 chmod +x "$TL_HOOKS_DIR"/*.sh
 
 if [[ ! -f "$HOOKS_JSON" ]]; then

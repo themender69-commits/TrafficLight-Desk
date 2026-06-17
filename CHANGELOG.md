@@ -2,41 +2,27 @@
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-06-17
+
 ### Added
 
-- Hook 监控活性检测（`monitor-health.cjs`）：绿点 = 5 分钟内有 Hook 回调；灰点 = 未连接或监控未激活
-- 连接授权原生对话框（`connect-dialog.cjs`），侧边菜单与托盘共用
-- 毛玻璃叠穿 UI（外层 glass + 内层 shell）
-- `POST /tools/:id/connect/confirm` 端点
-- `GET /status` 返回 `monitoring`、`lastHookAt` 字段
-- 文档：`docs/ARCHITECTURE.md`、完善 README
-- Windows 便携版 exe 打包（`npm run dist:win` / `scripts/pack-win.sh`）
-- 双击 exe 单实例启动；Windows Hook 安装自动使用 `bash` 路径
-- `release/README.md`：打包产物目录说明（二进制仍不提交 Git）
+- Node 单一状态机（`desktop/state-machine.cjs`），`POST /hook-event` 统一灯态与防抖
+- Hook 薄层 `tl-dispatch.sh`；App/Hook 版本锁（`agent-hooks/VERSION`、`/diagnostics/versions`）
+- UI SSE 实时推送（`GET /events`）；诊断 trace API
+- ToolPicker「关于」版本信息；点空白 / Esc 关闭；标题栏固定关闭按钮
+- Windows：`install-hooks.ps1`、`start.ps1` / `stop.ps1`；`npm run test:state-machine`
+- macOS `scripts/open-app.sh`；`POST /app/show` 强制显示窗口
 
 ### Changed
 
-- 重命名 `cursor-hooks/` → **`agent-hooks/`**（共享 Hook 源码，避免误以为仅 Cursor；打包路径同步）
-- 工具选择菜单移除 Trae（暂无官方 Hook 支持）
-- 连接弹窗文案精简
-- Logo 状态点：绿 = 监控中，灰 = 未连接或未激活
-- ToolPicker 过滤不支持 Hook 的工具
-- 精简未使用的 API 导出与 `StatusPayload.message` 字段
-- 合并 CHANGELOG / README / ARCHITECTURE 文档
-
-### Removed
-
-- Trae 相关代码与 Logo 资源（菜单已不支持）
-- `cursor-hooks/logo/` 重复 Logo 目录（UI 使用 `public/logos/`）
-- 毛玻璃 v1 样式备份文件
-- 未完成的 `release/` 本地打包产物（`win-unpacked/`、`builder-debug.yml` 等中间文件）
+- 音效由 App 统一播放（Tink / Glass），并 cancel agent-sound 迟到 Glass
+- Hook 脚本改为事件转发，bash 内状态机逻辑迁入 Node
+- 菜单滚动条深色细样式；移除红绿灯底部「关于」文字
 
 ### Fixed
 
-- Claude Code 权限弹窗（如 Bash 批准）现正确亮红灯：识别 `PermissionRequest` / `Notification`
-- Cursor Sandbox 批准（Allowlist + Run）恢复亮红灯：不再因 `sandbox:true` 跳过
-- Cursor Shell/MCP 批准不再过早亮红灯：等 Agent `stop`（输出停住、Run 框将出）后再红
-- Cursor `stop` 在 `waiting` 时不再误调度绿灯
+- Mac 窗口难找到（Dock 图标、启动 show/focus、托盘点击显示）
+- 切换工具时 Hook 路径兜底；启动时自动同步过期 Hook
 
 ## [0.1.0] - 2026-06-02
 

@@ -6,7 +6,7 @@ PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=tl-state.sh
 source "$PLUGIN_DIR/tl-state.sh"
 
-DELAY="${TL_UI_WAIT_DELAY_SEC:-0.2}"
+DELAY="${TL_UI_WAIT_DELAY_SEC:-0.05}"
 sleep "$DELAY"
 
 current_gen="$(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0)"

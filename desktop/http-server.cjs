@@ -5,6 +5,7 @@ const {
   installToolHooks,
   uninstallTool,
   readConnection,
+  uninstallPreviousTool,
 } = require('./hook-installer.cjs');
 const {
   buildConnectionStatus,
@@ -44,10 +45,15 @@ function createHttpServer({
   stateDir,
   readState,
   writeState,
+  stateMachine,
+  sseHub,
+  traceLog,
+  versionStatus,
   onRestart,
   onQuit,
   setMenuOpen,
   showConnectConfirm,
+  showMainWindow,
 }) {
   const port = Number(process.env.TRAFFICLIGHT_PORT || 9876);
 
@@ -66,14 +72,31 @@ function createHttpServer({
     const pathname = url.pathname;
 
     try {
+      if (pathname === '/events' && req.method === 'GET') {
+        res.writeHead(200, {
+          'Content-Type': 'text/event-stream',
+          'Cache-Control': 'no-cache',
+          Connection: 'keep-alive',
+        });
+        res.write('\n');
+        if (sseHub) {
+          sseHub.addClient(res);
+          const state = readState();
+          res.write(`event: status\ndata: ${JSON.stringify(state)}\n\n`);
+        }
+        return;
+      }
+
       if (pathname === '/status' && req.method === 'GET') {
         const state = readState();
         const connection = readConnection(stateDir);
         const health = buildConnectionStatus(connection, stateDir);
+        const versions = versionStatus ? versionStatus(stateDir) : undefined;
         jsonResponse(res, 200, {
           ...state,
           tool: normalizeTool(connection?.tool || state.tool),
           ...health,
+          versions,
         });
         return;
       }
@@ -82,7 +105,47 @@ function createHttpServer({
         const body = await readBody(req);
         const payload = JSON.parse(body);
         recordHookActivity(stateDir);
-        jsonResponse(res, 200, writeState(payload));
+        const next = stateMachine
+          ? stateMachine.applyExternalState(payload)
+          : writeState(payload);
+        jsonResponse(res, 200, next);
+        return;
+      }
+
+      if (pathname === '/hook-event' && req.method === 'POST') {
+        const body = await readBody(req);
+        const payload = JSON.parse(body || '{}');
+        if (!stateMachine) {
+          jsonResponse(res, 503, { ok: false, error: 'state machine unavailable' });
+          return;
+        }
+        const next = stateMachine.handleHookEvent(payload);
+        jsonResponse(res, 200, { ok: true, ...next });
+        return;
+      }
+
+      if (pathname === '/state/reset' && req.method === 'POST') {
+        if (stateMachine) {
+          stateMachine.reset('api-reset');
+        }
+        const next = writeState({ status: 'idle' });
+        if (sseHub) {
+          sseHub.broadcast('status', next);
+        }
+        jsonResponse(res, 200, next);
+        return;
+      }
+
+      if (pathname === '/diagnostics/trace' && req.method === 'GET') {
+        jsonResponse(res, 200, {
+          entries: traceLog ? traceLog.list() : [],
+          snapshot: stateMachine ? stateMachine.getSnapshot() : null,
+        });
+        return;
+      }
+
+      if (pathname === '/diagnostics/versions' && req.method === 'GET') {
+        jsonResponse(res, 200, versionStatus ? versionStatus(stateDir) : {});
         return;
       }
 
@@ -159,11 +222,16 @@ function createHttpServer({
       if (connectMatch && req.method === 'POST') {
         const toolId = connectMatch[1];
         const current = readConnection(stateDir);
-        if (current && current.tool !== toolId) {
-          uninstallTool(stateDir, current.tool);
-        }
+        const previousTool =
+          current && current.tool !== toolId ? current.tool : null;
         const result = installToolHooks(stateDir, toolId);
+        if (previousTool) {
+          uninstallPreviousTool(stateDir, previousTool, result.manifest);
+        }
         clearHookActivity(stateDir);
+        if (stateMachine) {
+          stateMachine.reset('connect');
+        }
         writeState({ tool: toolId, status: 'idle' });
         jsonResponse(res, 200, {
           ok: true,
@@ -182,8 +250,17 @@ function createHttpServer({
           uninstallTool(stateDir, current.tool);
         }
         clearHookActivity(stateDir);
+        if (stateMachine) {
+          stateMachine.reset('disconnect');
+        }
         writeState({ status: 'idle' });
         jsonResponse(res, 200, { ok: true, disconnected: true });
+        return;
+      }
+
+      if (pathname === '/app/show' && req.method === 'POST') {
+        const ok = typeof showMainWindow === 'function' ? showMainWindow() : false;
+        jsonResponse(res, 200, { ok });
         return;
       }
 

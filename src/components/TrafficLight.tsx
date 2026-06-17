@@ -80,11 +80,20 @@ export function TrafficLight({
   return (
     <div className="traffic-light-layout">
       {pickerOpen ? (
-        <ToolPicker
-          activeTool={connected ? tool : null}
-          onClose={closePicker}
-          onChanged={onRefresh}
-        />
+        <>
+          <button
+            type="button"
+            className="tool-picker-scrim"
+            onClick={closePicker}
+            aria-label="关闭菜单"
+            tabIndex={-1}
+          />
+          <ToolPicker
+            activeTool={connected ? tool : null}
+            onClose={closePicker}
+            onChanged={onRefresh}
+          />
+        </>
       ) : null}
 
       <div className="traffic-light" title={STATUS_LABELS[status]}>

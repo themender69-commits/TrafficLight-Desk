@@ -2,6 +2,13 @@ export type LightStatus = 'idle' | 'working' | 'done' | 'waiting';
 
 export type AiTool = 'cursor' | 'codex' | 'claude';
 
+export interface VersionInfo {
+  app: string;
+  hooksSource: string;
+  installed: string | null;
+  aligned: boolean | null;
+}
+
 export interface StatusPayload {
   status: LightStatus;
   tool?: AiTool;
@@ -10,6 +17,7 @@ export interface StatusPayload {
   /** Hook 近期有回调，监控有效 */
   monitoring?: boolean;
   lastHookAt?: number | null;
+  versions?: VersionInfo;
 }
 
 export interface ToolInfo {

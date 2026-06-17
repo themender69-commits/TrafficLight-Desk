@@ -1,22 +1,29 @@
 #!/bin/bash
-# TrafficLight Desk — 状态写入与防抖调度
+# TrafficLight Desk — Hook 与 App 通信（薄层；逻辑在 desktop/state-machine.cjs）
 set -euo pipefail
 
 TL_STATE_DIR="${TL_STATE_DIR:-$HOME/.trafficlight-desk}"
 TL_STATE_FILE="$TL_STATE_DIR/state.json"
 TL_PORT="${TRAFFICLIGHT_PORT:-9876}"
-TL_DONE_GEN_FILE="$TL_STATE_DIR/done-gen"
-TL_DONE_WAITER_PID="$TL_STATE_DIR/done-waiter.pid"
-TL_PENDING_APPROVAL_FILE="$TL_STATE_DIR/pending-approval"
-TL_WAIT_FALLBACK_GEN_FILE="$TL_STATE_DIR/wait-fallback-gen"
-TL_WAIT_FALLBACK_PID="$TL_STATE_DIR/wait-fallback.pid"
 
 mkdir -p "$TL_STATE_DIR"
 
+tl_python() {
+  if command -v python3 >/dev/null 2>&1; then
+    echo python3
+  elif command -v python >/dev/null 2>&1; then
+    echo python
+  else
+    echo python3
+  fi
+}
+
+TL_PYTHON="$(tl_python)"
+
 tl_active_tool() {
-  python3 -c "
+  "$TL_PYTHON" -c "
 import json, os
-path = os.path.expanduser('~/.trafficlight-desk/connection.json')
+path = os.path.join(os.path.expanduser('~'), '.trafficlight-desk', 'connection.json')
 try:
     print(json.load(open(path)).get('tool', 'cursor'))
 except Exception:
@@ -24,107 +31,59 @@ except Exception:
 " 2>/dev/null || echo "cursor"
 }
 
-tl_read_status() {
-  python3 -c "
-import json, os
-path = os.path.expanduser('~/.trafficlight-desk/state.json')
-try:
-    print(json.load(open(path)).get('status', 'idle'))
-except Exception:
-    print('idle')
-" 2>/dev/null || echo "idle"
-}
-
-tl_set_status() {
-  local status="$1"
-  local tool
-  tool="$(tl_active_tool)"
-
-  TL_STATUS="$status" TL_TOOL="$tool" TL_PORT="$TL_PORT" python3 <<'PY'
+tl_dispatch_hook() {
+  local input="$1"
+  TL_HOOK_INPUT="$input" TL_PORT="$TL_PORT" "$TL_PYTHON" <<'PY'
 import json, os, time, urllib.request
 
-status = os.environ["TL_STATUS"]
-tool = os.environ.get("TL_TOOL", "cursor")
+raw = os.environ.get("TL_HOOK_INPUT", "")
 port = os.environ.get("TL_PORT", "9876")
+try:
+    payload = json.loads(raw) if raw.strip() else {}
+except Exception:
+    payload = {}
 
-payload = {"status": status, "tool": tool, "updatedAt": int(time.time() * 1000)}
 data = json.dumps(payload).encode()
 req = urllib.request.Request(
-    f"http://127.0.0.1:{port}/status",
+    f"http://127.0.0.1:{port}/hook-event",
     data=data,
     headers={"Content-Type": "application/json"},
     method="POST",
 )
 try:
-    urllib.request.urlopen(req, timeout=0.5)
+    urllib.request.urlopen(req, timeout=0.35)
 except Exception:
-    state_file = os.path.expanduser("~/.trafficlight-desk/state.json")
-    os.makedirs(os.path.dirname(state_file), exist_ok=True)
-    with open(state_file, "w") as f:
-        json.dump(payload, f, indent=2)
+    event = (payload.get("hook_event_name") or "").lower()
+    status = None
+    if event in ("beforesubmitprompt", "userpromptsubmit"):
+        status = "working"
+    elif event == "sessionend":
+        status = "idle"
+    if status:
+        tool = "cursor"
+        conn = os.path.join(os.path.expanduser("~"), ".trafficlight-desk", "connection.json")
+        try:
+            tool = json.load(open(conn)).get("tool", "cursor")
+        except Exception:
+            pass
+        state_file = os.path.join(os.path.expanduser("~"), ".trafficlight-desk", "state.json")
+        os.makedirs(os.path.dirname(state_file), exist_ok=True)
+        with open(state_file, "w") as f:
+            json.dump(
+                {"status": status, "tool": tool, "updatedAt": int(time.time() * 1000)},
+                f,
+                indent=2,
+            )
 PY
 }
 
-# Agent 仍在活动 → 取消待亮绿灯 / 待亮红灯兜底
-tl_mark_active() {
-  local gen
-  gen=$(($(cat "$TL_DONE_GEN_FILE" 2>/dev/null || echo 0) + 1))
-  echo "$gen" > "$TL_DONE_GEN_FILE"
-  if [[ -f "$TL_DONE_WAITER_PID" ]]; then
-    kill "$(cat "$TL_DONE_WAITER_PID")" 2>/dev/null || true
-    rm -f "$TL_DONE_WAITER_PID"
-  fi
-
-  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
-  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
-  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
-    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
-    rm -f "$TL_WAIT_FALLBACK_PID"
-  fi
-}
-
-tl_clear_pending_approval() {
-  rm -f "$TL_PENDING_APPROVAL_FILE"
-  local gen
-  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
-  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
-  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
-    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
-    rm -f "$TL_WAIT_FALLBACK_PID"
-  fi
-}
-
-# Shell/MCP 需批准：先记标记，等 stop（Agent 输出停住）再亮红灯
-tl_set_pending_approval() {
-  local plugin_dir="$1"
-  echo "$(date +%s)" > "$TL_PENDING_APPROVAL_FILE"
-
-  local gen
-  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
-  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
-  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
-    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
-  fi
-
-  TL_STATE_DIR="$TL_STATE_DIR" \
-    TL_UI_WAIT_DELAY_SEC="${TL_UI_WAIT_DELAY_SEC:-0.2}" \
-    nohup "$plugin_dir/tl-ui-wait.sh" "$gen" >/dev/null 2>&1 &
-  echo $! > "$TL_WAIT_FALLBACK_PID"
-}
-
-# stop 后调度绿灯（防抖）；若期间又有 postToolUse 会被 tl_mark_active 取消
-tl_schedule_done() {
-  local plugin_dir="$1"
-  local gen
-  gen=$(($(cat "$TL_DONE_GEN_FILE" 2>/dev/null || echo 0) + 1))
-  echo "$gen" > "$TL_DONE_GEN_FILE"
-
-  if [[ -f "$TL_DONE_WAITER_PID" ]]; then
-    kill "$(cat "$TL_DONE_WAITER_PID")" 2>/dev/null || true
-  fi
-
-  TL_STATE_DIR="$TL_STATE_DIR" \
-    TL_DONE_DEBOUNCE_SEC="${TL_DONE_DEBOUNCE_SEC:-1.0}" \
-    nohup "$plugin_dir/tl-done-waiter.sh" "$gen" >/dev/null 2>&1 &
-  echo $! > "$TL_DONE_WAITER_PID"
+tl_read_status() {
+  "$TL_PYTHON" -c "
+import json, os
+path = os.path.join(os.path.expanduser('~'), '.trafficlight-desk', 'state.json')
+try:
+    print(json.load(open(path)).get('status', 'idle'))
+except Exception:
+    print('idle')
+" 2>/dev/null || echo "idle"
 }

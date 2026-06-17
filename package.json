@@ -1,6 +1,6 @@
 {
   "name": "trafficlight-desk",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "AI 工具状态监视器 — 桌面红绿灯",
   "main": "main.cjs",
   "author": "TrafficLight Desk",
@@ -11,7 +11,8 @@
     "preview": "vite build && env -u ELECTRON_RUN_AS_NODE electron .",
     "dist": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder",
     "dist:mac": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --mac",
-    "dist:win": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --win --x64"
+    "dist:win": "npm run build && env -u ELECTRON_RUN_AS_NODE electron-builder --win --x64",
+    "test:state-machine": "node scripts/self-test-state-machine.cjs"
   },
   "dependencies": {
     "react": "^19.1.0",
@@ -47,7 +48,9 @@
         "filter": [
           "**/*.sh",
           "**/*.py",
-          "**/*.json"
+          "**/*.ps1",
+          "**/*.json",
+          "VERSION"
         ]
       }
     ],

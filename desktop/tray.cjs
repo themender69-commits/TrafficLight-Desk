@@ -4,6 +4,7 @@ const {
   installToolHooks,
   uninstallTool,
   readConnection,
+  uninstallPreviousTool,
 } = require('./hook-installer.cjs');
 const { TOOL_LABELS, showConnectConfirm, showConnectSuccess } = require('./connect-dialog.cjs');
 const { clearHookActivity } = require('./monitor-health.cjs');
@@ -57,10 +58,12 @@ function createTray({ stateDir, writeState, getMainWindow }) {
     }
 
     try {
-      if (current && current.tool !== toolId) {
-        uninstallTool(stateDir, current.tool);
+      const previousTool =
+        current && current.tool !== toolId ? current.tool : null;
+      const result = installToolHooks(stateDir, toolId);
+      if (previousTool) {
+        uninstallPreviousTool(stateDir, previousTool, result.manifest);
       }
-      installToolHooks(stateDir, toolId);
       clearHookActivity(stateDir);
       writeState({ tool: toolId, status: 'idle' });
       await showConnectSuccess(getMainWindow, toolId);
@@ -128,8 +131,19 @@ function createTray({ stateDir, writeState, getMainWindow }) {
   }
 
   tray = new Tray(buildTrayIcon());
-  tray.setToolTip('TrafficLight Desk');
-  tray.on('click', rebuildMenu);
+  tray.setToolTip('TrafficLight Desk — 点击显示红绿灯');
+  tray.on('click', () => {
+    const win = getMainWindow();
+    if (win) {
+      if (win.isMinimized()) {
+        win.restore();
+      }
+      win.show();
+      win.focus();
+    }
+    rebuildMenu();
+    tray.popUpContextMenu();
+  });
   rebuildMenu();
 
   return {

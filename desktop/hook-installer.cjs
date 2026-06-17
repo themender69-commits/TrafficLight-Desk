@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { detectTool } = require('./path-resolver.cjs');
 const { getHooksSourceDir } = require('./paths.cjs');
+const { readHooksVersion } = require('./version-info.cjs');
 
 const MARKER = 'trafficlight-desk';
 
@@ -41,9 +42,19 @@ function ensureDir(dir) {
 function copyHookScripts(targetDir) {
   ensureDir(targetDir);
   const hooksSource = getHooksSourceDir();
+  if (!fs.existsSync(hooksSource)) {
+    throw new Error(`未找到 Hook 脚本目录：${hooksSource}`);
+  }
   const scripts = fs
     .readdirSync(hooksSource)
-    .filter((name) => name.endsWith('.sh') || name.endsWith('.py'));
+    .filter(
+      (name) =>
+        name.endsWith('.sh') ||
+        name.endsWith('.py') ||
+        name.endsWith('.ps1') ||
+        name === 'VERSION' ||
+        name === 'approval-catalog.json',
+    );
   const installed = [];
 
   for (const name of scripts) {
@@ -241,6 +252,7 @@ function installForAdapter(stateDir, adapterId, activeTool) {
     hooksFile: detection.hooksFile || detection.settingsFile,
     installedFiles,
     hookEntries,
+    hooksVersion: readHooksVersion(),
     installedAt: Date.now(),
   };
 
@@ -252,6 +264,7 @@ function installForAdapter(stateDir, adapterId, activeTool) {
     adapter: adapterId,
     configDir: detection.configDir,
     hooksFile: manifest.hooksFile,
+    hooksVersion: manifest.hooksVersion,
     connectedAt: Date.now(),
   };
   writeJson(path.join(stateDir, 'connection.json'), connection);
@@ -319,8 +332,37 @@ function readConnection(stateDir) {
   return readJson(path.join(stateDir, 'connection.json'), null);
 }
 
+function removeManifestOnly(stateDir, toolId) {
+  const manifestFile = getManifestPath(stateDir, toolId);
+  try {
+    if (fs.existsSync(manifestFile)) {
+      fs.unlinkSync(manifestFile);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+/** 切换工具：Codex/Cursor 共用 hooks.json 时只删 manifest，不卸 Hook */
+function uninstallPreviousTool(stateDir, previousTool, newManifest) {
+  const prevManifest = readJson(getManifestPath(stateDir, previousTool), null);
+  if (!prevManifest) {
+    return;
+  }
+  const sameHooksFile =
+    prevManifest.hooksFile &&
+    newManifest?.hooksFile &&
+    prevManifest.hooksFile === newManifest.hooksFile;
+  if (sameHooksFile) {
+    removeManifestOnly(stateDir, previousTool);
+    return;
+  }
+  uninstallTool(stateDir, previousTool);
+}
+
 module.exports = {
   installToolHooks,
   uninstallTool,
   readConnection,
+  uninstallPreviousTool,
 };
