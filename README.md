@@ -6,6 +6,8 @@
 
 **仓库：** [github.com/themender69-commits/TrafficLight-Desk](https://github.com/themender69-commits/TrafficLight-Desk)
 
+📖 **普通用户请先看：[用户使用指南](docs/USER_GUIDE.md)**（安装、连接、三灯含义、常见问题）
+
 ---
 
 ## 功能概览
@@ -59,9 +61,16 @@
 
 ## 快速开始
 
-### Windows 用户（推荐）
+### 下载安装（推荐）
 
-从 [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 下载 `TrafficLight-Desk-*-win-portable.exe`，**双击运行**即可（便携版，无需安装）。详见下方 [打包分发](#打包分发)。
+从 **[GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases/latest)** 下载最新版：
+
+| 平台 | 文件 | 说明 |
+|------|------|------|
+| Windows | `TrafficLight-Desk-*-win-portable.exe` | 双击运行 |
+| macOS | `TrafficLight-Desk-*-mac.dmg` | 拖入「应用程序」 |
+
+详细步骤、首次授权、常见问题 → **[用户使用指南](docs/USER_GUIDE.md)**
 
 ### 开发模式（热更新）
 
@@ -217,8 +226,8 @@ npm run dist:win        # 同上（Windows exe）
 
 | 平台 | 文件名示例 | 获取方式 |
 |------|------------|----------|
-| Windows | `TrafficLight-Desk-0.1.0-win-portable.exe` | [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) 或本地 `release/` |
-| macOS | `TrafficLight-Desk-0.1.0-mac.dmg` | 本地 `npm run dist:mac` → `release/` |
+| Windows | `TrafficLight-Desk-0.1.1-win-portable.exe` | [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) |
+| macOS | `TrafficLight-Desk-0.1.1-mac.dmg` | [GitHub Releases](https://github.com/themender69-commits/TrafficLight-Desk/releases) |
 
 ---
 
@@ -248,6 +257,7 @@ TrafficLight Desk/
 ├── release/                    # 打包产物（exe/dmg，不提交 Git；见 release/README.md）
 ├── scripts/                    # start / stop / restart / pack-win
 └── docs/
+    ├── USER_GUIDE.md           # 用户使用指南（面向下载安装包的用户）
     └── ARCHITECTURE.md         # 架构与数据流
 ```
 
