@@ -33,6 +33,9 @@
 ### Fixed
 
 - Claude Code 权限弹窗（如 Bash 批准）现正确亮红灯：识别 `PermissionRequest` / `Notification`
+- Cursor Sandbox 批准（Allowlist + Run）恢复亮红灯：不再因 `sandbox:true` 跳过
+- Cursor Shell/MCP 批准不再过早亮红灯：等 Agent `stop`（输出停住、Run 框将出）后再红
+- Cursor `stop` 在 `waiting` 时不再误调度绿灯
 
 ## [0.1.0] - 2026-06-02
 

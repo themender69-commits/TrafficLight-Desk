@@ -118,7 +118,7 @@ chmod +x scripts/*.sh
 | `stop` / `Stop`（防抖 2.5s） | 绿灯 |
 | `sessionEnd` / `SessionEnd` | 全灭 |
 
-**红灯触发（Cursor）：** `preToolUse`（AskQuestion / SwitchMode）、`beforeShellExecution`、`beforeMCPExecution`
+**红灯触发（Cursor）：** `preToolUse`（AskQuestion / SwitchMode，立即）、`beforeShellExecution` / `beforeMCPExecution`（Agent 输出停住、`stop` 后亮红灯，非命令刚排队时）
 
 **红灯触发（Claude Code）：** `PermissionRequest`、`Notification`（permission_prompt）、`PreToolUse`（AskUserQuestion / ExitPlanMode 等）
 
@@ -173,6 +173,7 @@ chmod +x cursor-hooks/install-hooks.sh
 | `CURSOR_CONFIG_DIR` | `~/.cursor` | Cursor 配置目录 |
 | `CLAUDE_CONFIG_DIR` | `~/.claude` | Claude Code 配置目录 |
 | `TL_DONE_DEBOUNCE_SEC` | `2.5` | 绿灯防抖秒数（Hook 脚本内） |
+| `TL_PENDING_FALLBACK_SEC` | `4` | Shell/MCP 待批准标记超时兜底（秒） |
 
 ---
 

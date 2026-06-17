@@ -8,7 +8,7 @@ const MARKER = 'trafficlight-desk';
 const CURSOR_HOOK_ENTRIES = {
   beforeSubmitPrompt: ['tl-on-prompt.sh'],
   postToolUse: ['tl-on-tool.sh'],
-  preToolUse: [{ script: 'tl-on-wait.sh', matcher: 'AskQuestion|SwitchMode' }],
+  preToolUse: [{ script: 'tl-on-wait.sh', matcher: 'AskQuestion|AskUserQuestion|SwitchMode|Task|GenerateImage|Shell|MCP:' }],
   beforeShellExecution: ['tl-on-wait.sh'],
   beforeMCPExecution: ['tl-on-wait.sh'],
   stop: ['tl-on-stop.sh'],
@@ -41,7 +41,7 @@ function copyHookScripts(targetDir) {
   const hooksSource = getHooksSourceDir();
   const scripts = fs
     .readdirSync(hooksSource)
-    .filter((name) => name.endsWith('.sh'));
+    .filter((name) => name.endsWith('.sh') || name.endsWith('.py'));
   const installed = [];
 
   for (const name of scripts) {

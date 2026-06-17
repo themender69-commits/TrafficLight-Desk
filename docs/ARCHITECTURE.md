@@ -116,7 +116,7 @@ Logo 路径使用相对路径 `./logos/...`（Electron `file://` 协议下不可
 1. **Prompt 提交** → `working`（黄灯）
 2. **Tool 执行中** → 保持 `working`；`postToolUse` 不覆盖已完成的 `done`
 3. **需用户操作** → `waiting`（红灯）
-   - **Cursor：** `preToolUse`（AskQuestion / SwitchMode）、`beforeShellExecution`、`beforeMCPExecution`
+   - **Cursor：** `preToolUse`（AskQuestion / SwitchMode，立即）、`beforeShellExecution` / `beforeMCPExecution`（记待批准标记，`stop` 后再亮红灯）
    - **Claude：** `PermissionRequest`、`Notification`（permission_prompt）、`PreToolUse`（AskUserQuestion 等）
 4. **Stop 事件** → 防抖 2.5s 后 → `done`（绿灯）
 5. **Session 结束** → `idle`（全灭）

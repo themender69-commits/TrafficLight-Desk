@@ -6,7 +6,7 @@ PLUGIN_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=tl-state.sh
 source "$PLUGIN_DIR/tl-state.sh"
 
-DEBOUNCE="${TL_DONE_DEBOUNCE_SEC:-2.5}"
+DEBOUNCE="${TL_DONE_DEBOUNCE_SEC:-1.0}"
 
 sleep "$DEBOUNCE"
 

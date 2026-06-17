@@ -45,7 +45,8 @@
         "from": "cursor-hooks",
         "to": "cursor-hooks",
         "filter": [
-          "**/*.sh"
+          "**/*.sh",
+          "**/*.py"
         ]
       }
     ],

@@ -7,6 +7,9 @@ TL_STATE_FILE="$TL_STATE_DIR/state.json"
 TL_PORT="${TRAFFICLIGHT_PORT:-9876}"
 TL_DONE_GEN_FILE="$TL_STATE_DIR/done-gen"
 TL_DONE_WAITER_PID="$TL_STATE_DIR/done-waiter.pid"
+TL_PENDING_APPROVAL_FILE="$TL_STATE_DIR/pending-approval"
+TL_WAIT_FALLBACK_GEN_FILE="$TL_STATE_DIR/wait-fallback-gen"
+TL_WAIT_FALLBACK_PID="$TL_STATE_DIR/wait-fallback.pid"
 
 mkdir -p "$TL_STATE_DIR"
 
@@ -62,7 +65,7 @@ except Exception:
 PY
 }
 
-# Agent 仍在活动 → 取消待亮绿灯，保持黄灯
+# Agent 仍在活动 → 取消待亮绿灯 / 待亮红灯兜底
 tl_mark_active() {
   local gen
   gen=$(($(cat "$TL_DONE_GEN_FILE" 2>/dev/null || echo 0) + 1))
@@ -71,6 +74,42 @@ tl_mark_active() {
     kill "$(cat "$TL_DONE_WAITER_PID")" 2>/dev/null || true
     rm -f "$TL_DONE_WAITER_PID"
   fi
+
+  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
+  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
+  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
+    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
+    rm -f "$TL_WAIT_FALLBACK_PID"
+  fi
+}
+
+tl_clear_pending_approval() {
+  rm -f "$TL_PENDING_APPROVAL_FILE"
+  local gen
+  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
+  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
+  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
+    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
+    rm -f "$TL_WAIT_FALLBACK_PID"
+  fi
+}
+
+# Shell/MCP 需批准：先记标记，等 stop（Agent 输出停住）再亮红灯
+tl_set_pending_approval() {
+  local plugin_dir="$1"
+  echo "$(date +%s)" > "$TL_PENDING_APPROVAL_FILE"
+
+  local gen
+  gen=$(($(cat "$TL_WAIT_FALLBACK_GEN_FILE" 2>/dev/null || echo 0) + 1))
+  echo "$gen" > "$TL_WAIT_FALLBACK_GEN_FILE"
+  if [[ -f "$TL_WAIT_FALLBACK_PID" ]]; then
+    kill "$(cat "$TL_WAIT_FALLBACK_PID")" 2>/dev/null || true
+  fi
+
+  TL_STATE_DIR="$TL_STATE_DIR" \
+    TL_UI_WAIT_DELAY_SEC="${TL_UI_WAIT_DELAY_SEC:-0.2}" \
+    nohup "$plugin_dir/tl-ui-wait.sh" "$gen" >/dev/null 2>&1 &
+  echo $! > "$TL_WAIT_FALLBACK_PID"
 }
 
 # stop 后调度绿灯（防抖）；若期间又有 postToolUse 会被 tl_mark_active 取消
@@ -85,7 +124,7 @@ tl_schedule_done() {
   fi
 
   TL_STATE_DIR="$TL_STATE_DIR" \
-    TL_DONE_DEBOUNCE_SEC="${TL_DONE_DEBOUNCE_SEC:-2.5}" \
+    TL_DONE_DEBOUNCE_SEC="${TL_DONE_DEBOUNCE_SEC:-1.0}" \
     nohup "$plugin_dir/tl-done-waiter.sh" "$gen" >/dev/null 2>&1 &
   echo $! > "$TL_DONE_WAITER_PID"
 }

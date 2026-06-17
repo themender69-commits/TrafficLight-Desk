@@ -24,6 +24,7 @@ TL_HOOKS_DIR="$CURSOR_DIR/hooks/trafficlight-desk"
 echo "→ 目标 Cursor 配置: $CURSOR_DIR"
 mkdir -p "$TL_HOOKS_DIR"
 cp "$HOOKS_SRC"/*.sh "$TL_HOOKS_DIR/"
+cp "$HOOKS_SRC"/*.py "$TL_HOOKS_DIR/" 2>/dev/null || true
 chmod +x "$TL_HOOKS_DIR"/*.sh
 
 if [[ ! -f "$HOOKS_JSON" ]]; then
@@ -47,7 +48,7 @@ entries = {
     "beforeSubmitPrompt": [{"command": f"{tl_dir}/tl-on-prompt.sh"}],
     "postToolUse": [{"command": f"{tl_dir}/tl-on-tool.sh"}],
     "preToolUse": [
-        {"command": f"{tl_dir}/tl-on-wait.sh", "matcher": "AskQuestion|SwitchMode"}
+        {"command": f"{tl_dir}/tl-on-wait.sh", "matcher": "AskQuestion|AskUserQuestion|SwitchMode|Task|GenerateImage|Shell|MCP:"}
     ],
     "beforeShellExecution": [{"command": f"{tl_dir}/tl-on-wait.sh"}],
     "beforeMCPExecution": [{"command": f"{tl_dir}/tl-on-wait.sh"}],
