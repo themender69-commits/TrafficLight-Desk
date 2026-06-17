@@ -5,6 +5,8 @@ const { createHttpServer } = require('./desktop/http-server.cjs');
 const { createTray } = require('./desktop/tray.cjs');
 const { createWindowLayout } = require('./desktop/window-layout.cjs');
 const { showConnectConfirm } = require('./desktop/connect-dialog.cjs');
+const { playApprovalSound } = require('./desktop/approval-sound.cjs');
+const { startPendingApprovalWatcher } = require('./desktop/pending-watch.cjs');
 
 const STATE_DIR = path.join(app.getPath('home'), '.trafficlight-desk');
 const STATE_FILE = path.join(STATE_DIR, 'state.json');
@@ -33,8 +35,12 @@ function readState() {
 
 function writeState(partial) {
   ensureStateDir();
-  const next = { ...readState(), ...partial, updatedAt: Date.now() };
+  const prev = readState();
+  const next = { ...prev, ...partial, updatedAt: Date.now() };
   fs.writeFileSync(STATE_FILE, JSON.stringify(next, null, 2));
+  if (partial.status === 'waiting' && prev.status !== 'waiting') {
+    playApprovalSound();
+  }
   return next;
 }
 
@@ -109,6 +115,7 @@ app.whenReady().then(() => {
   }
   ensureStateDir();
   watchStateFile();
+  startPendingApprovalWatcher(STATE_DIR, readState, writeState);
   createHttpServer({
     stateDir: STATE_DIR,
     readState,

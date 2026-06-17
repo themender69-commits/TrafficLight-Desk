@@ -78,6 +78,29 @@ run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"ls 
 assert_status "ls 不触发红灯" "working"
 echo ""
 
+# --- Allowlist Run 框：cd && 危险命令不能误判为安全 ---
+echo "【Allowlist】cd && bash … → schedule + 红灯（Not in allowlist / Run 框）"
+reset_idle
+run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
+run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"cd \"/Users/mac/My_AI_Workspace/product/TrafficLight Desk\" && bash scripts/self-test-hooks.sh 2>&1 | tail -35","sandbox":false}'
+assert_status "beforeShellExecution 刚触发" "working"
+[[ -f "$HOME/.trafficlight-desk/pending-approval" ]] && echo -e "  ${GRN}✓${NC} pending 已写入（非 cd 误判 skip）" && pass=$((pass+1)) || { echo -e "  ${RED}✗${NC} pending 缺失（可能 cd 误判）"; fail=$((fail+1)); }
+run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell","duration":0.527}'
+assert_status "stub postToolUse → waiting" "waiting"
+echo ""
+
+# --- Allow/Run 等待：stub postToolUse 不能抢黄 ---
+echo "【Allow 等待】stub postToolUse（duration≈0）→ 红灯 + 保留 pending"
+reset_idle
+run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
+run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"git push origin main","sandbox":false}'
+run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell","duration":0.527}'
+assert_status "stub postToolUse 立即亮红" "waiting"
+[[ -f "$HOME/.trafficlight-desk/pending-approval" ]] && echo -e "  ${GRN}✓${NC} pending 未被 stub 清掉" && pass=$((pass+1)) || { echo -e "  ${RED}✗${NC} pending 被 stub 误清"; fail=$((fail+1)); }
+run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell","duration":1200,"tool_output":"{\"output\":\"\",\"exitCode\":0}"}'
+assert_status "真正执行完 → working" "working"
+echo ""
+
 # --- 标准 1+2：Run 框 → 短延迟后红灯 ---
 echo "【标准1+2】Run 框：schedule 后 UI 延迟亮红"
 reset_idle
@@ -106,7 +129,7 @@ echo "【标准3】自动 Run 完 → 不闪红"
 reset_idle
 run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
 run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"curl -s http://127.0.0.1:9876/status"}'
-run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell"}'
+run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell","duration":35,"tool_output":"{\"output\":\"{\\\"status\\\":\\\"idle\\\"}\",\"exitCode\":0}"}'
 sleep 0.35
 assert_status "postToolUse 已清 pending，保持 working" "working"
 echo ""
@@ -117,7 +140,7 @@ reset_idle
 run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
 run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"git push origin main"}'
 sleep 0.35
-run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell"}'
+run_hook tl-on-tool.sh '{"hook_event_name":"postToolUse","tool_name":"Shell","duration":1200,"tool_output":"{\"output\":\"\",\"exitCode\":0}"}'
 assert_status "Shell 执行完 → working" "working"
 [[ ! -f "$HOME/.trafficlight-desk/pending-approval" ]] && echo -e "  ${GRN}✓${NC} pending 已清除" && pass=$((pass+1)) || { echo -e "  ${RED}✗${NC} pending 未清除"; fail=$((fail+1)); }
 echo ""
@@ -155,6 +178,32 @@ run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
 run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"curl -s https://example.com","sandbox":true}'
 sleep 0.35
 assert_status "sandbox curl → waiting" "waiting"
+echo ""
+
+# --- catalog C07：ExitPlanMode ---
+echo "【C07】ExitPlanMode → 立即 waiting"
+reset_idle
+run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
+run_hook tl-on-wait.sh '{"hook_event_name":"preToolUse","tool_name":"ExitPlanMode"}'
+assert_status "ExitPlanMode 立即红灯" "waiting"
+echo ""
+
+# --- catalog C12：subagentStart ---
+echo "【C12】subagentStart → 立即 waiting"
+reset_idle
+run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
+run_hook tl-on-wait.sh '{"hook_event_name":"subagentStart","subagent_type":"shell"}'
+assert_status "subagentStart 立即红灯" "waiting"
+echo ""
+
+# --- catalog X01：Skip 清 pending ---
+echo "【X01】postToolUseFailure Skip → 清 pending、回 working"
+reset_idle
+run_hook tl-on-prompt.sh '{"hook_event_name":"beforeSubmitPrompt"}'
+run_hook tl-on-wait.sh '{"hook_event_name":"beforeShellExecution","command":"git push origin main","sandbox":false}'
+run_hook tl-on-tool-failure.sh '{"hook_event_name":"postToolUseFailure","tool_name":"Shell","error_message":"User skipped"}'
+assert_status "Skip 后回 working" "working"
+[[ ! -f "$HOME/.trafficlight-desk/pending-approval" ]] && echo -e "  ${GRN}✓${NC} pending 已清除" && pass=$((pass+1)) || { echo -e "  ${RED}✗${NC} pending 未清除"; fail=$((fail+1)); }
 echo ""
 
 # --- waiting 时不调度绿灯 ---

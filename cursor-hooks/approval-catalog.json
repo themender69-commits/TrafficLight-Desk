@@ -1,0 +1,366 @@
+{
+  "version": 2,
+  "updated": "2026-06-17",
+  "summary": {
+    "cursor_user_click_total": 12,
+    "cursor_covered": 10,
+    "cursor_partial": 1,
+    "cursor_gap": 2,
+    "claude_additional": 3,
+    "auxiliary_total": 1,
+    "self_test_pass": 30,
+    "notes": "新增框型：先在此登记 id → 改 tl-approval-lib.py → install-hooks → self-test-hooks.sh"
+  },
+  "implementation": {
+    "state_machine": {
+      "working": "黄灯 — Agent 执行/流式输出",
+      "waiting": "红灯 — 需用户点 UI",
+      "done": "绿灯 — stop 防抖后",
+      "idle": "全灭 — sessionEnd"
+    },
+    "red_light_strategies": {
+      "immediate": "tl-on-wait.sh → 立刻 waiting（AskQuestion、SwitchMode 等）",
+      "schedule": "写 pending-approval → tl-ui-wait.sh 0.2s → waiting；App pending-watch 兜底 + Tink"
+    },
+    "shell_pending_lifecycle": [
+      "preToolUse/beforeShellExecution → schedule（非 safe 命令）",
+      "stub postToolUse（duration<20ms 且无 output）→ 保持 waiting，不清 pending",
+      "用户点 Run → 真 postToolUse → 清 pending → working",
+      "用户点 Skip → postToolUseFailure → tl-on-tool-failure.sh 清 pending → working",
+      "waiting 期间 stop → tl-on-stop.sh 保持/补亮红灯"
+    ],
+    "stub_post_tool_use": {
+      "condition": "duration < 20 且 tool_output.output 为空",
+      "observed_in_logs": "git push Allow 等待前 duration≈0.527ms",
+      "file": "cursor-hooks/tl-on-tool.sh"
+    },
+    "safe_shell_chain": {
+      "rule": "按 && / ; 拆段，全段 safe 才 skip；cd && git push 必须 schedule",
+      "file": "cursor-hooks/tl-approval-lib.py"
+    },
+    "app_side": {
+      "pending_watch": "desktop/pending-watch.cjs — 监视 pending-approval 文件",
+      "approval_sound": "desktop/approval-sound.cjs — 进入 waiting 时 Tink（macOS afplay）",
+      "requires": "重启 TrafficLight Desk 后生效"
+    },
+    "hook_files": {
+      "tl-on-wait.sh": "分类 schedule/immediate",
+      "tl-on-tool.sh": "postToolUse；pending 守卫 + stub 判定",
+      "tl-on-tool-failure.sh": "postToolUseFailure；Skip 清 pending",
+      "tl-ui-wait.sh": "0.2s 延迟亮红",
+      "tl-on-stop.sh": "pending 时不误绿",
+      "tl-approval-lib.py": "classify() + SAFE_SHELL",
+      "approval-catalog.json": "本清单"
+    },
+    "cursor_hook_registration": {
+      "beforeSubmitPrompt": "tl-on-prompt.sh",
+      "preToolUse": "tl-on-wait.sh — AskQuestion|AskUserQuestion|SwitchMode|ExitPlanMode|Task|GenerateImage|Shell|MCP:",
+      "beforeShellExecution": "tl-on-wait.sh",
+      "beforeMCPExecution": "tl-on-wait.sh",
+      "postToolUse": "tl-on-tool.sh",
+      "postToolUseFailure": "tl-on-tool-failure.sh",
+      "subagentStart": "tl-on-wait.sh",
+      "stop": "tl-on-stop.sh",
+      "sessionEnd": "tl-on-session-end.sh"
+    },
+    "cursor_unsupported_events": [
+      "Notification（Claude 专用，Cursor 日志：not supported）",
+      "PermissionRequest（Claude 专用）"
+    ],
+    "log_evidence": {
+      "allowlist_run": "beforeShellExecution sandbox:false + Not in allowlist UI",
+      "git_push_wait": "beforeShellExecution 07:38:22 → postToolUse 07:39:34（71s，等 Allow）",
+      "stub_post_tool_use": "beforeShellExecution 07:37:55 → postToolUse 0.527ms 同秒"
+    }
+  },
+  "scenarios": [
+    {
+      "id": "C01",
+      "platform": "cursor",
+      "name": "shell_allowlist_run",
+      "ui_label": "Allowlist Run 框",
+      "ui_signs": [
+        "Allowlist (with Sandbox)",
+        "Skip / Allow / Run",
+        "Not in allowlist: bash, cd, cp, tail …"
+      ],
+      "user_action": "点 Run 或 Allow",
+      "hook_events": ["preToolUse(Shell)", "beforeShellExecution"],
+      "tl_strategy": "schedule → pending → waiting（0.2s）+ App 兜底 + Tink",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "scripts/self-test-hooks.sh 【Allowlist】【Allow 等待】",
+      "pitfalls_fixed": [
+        "cd && 危险命令误判 safe → auto_run_shell 按链拆段",
+        "stub postToolUse 误清 pending → duration<20 且无 output 保持 waiting"
+      ],
+      "example_command": "cd \"…/TrafficLight Desk\" && bash scripts/self-test-hooks.sh"
+    },
+    {
+      "id": "C02",
+      "platform": "cursor",
+      "name": "shell_sandbox_escalation",
+      "ui_label": "Sandbox 权限提升",
+      "ui_signs": [
+        "sandbox:true",
+        "需 network / git_write / all",
+        "git push、curl 外网",
+        "可长时间挂起（日志曾见 71s）"
+      ],
+      "user_action": "点 Allow 授予权限",
+      "hook_events": ["preToolUse(Shell)", "beforeShellExecution"],
+      "tl_strategy": "schedule（不跳过 sandbox，与 agent-sound 不同）",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【标准1+2】sandbox 命令",
+      "pitfalls_fixed": [],
+      "example_command": "git push origin main"
+    },
+    {
+      "id": "C03",
+      "platform": "cursor",
+      "name": "shell_run_no_sandbox",
+      "ui_label": "非 Sandbox Run 框",
+      "ui_signs": ["sandbox:false", "Skip / Allow / Run"],
+      "user_action": "点 Run",
+      "hook_events": ["beforeShellExecution"],
+      "tl_strategy": "同 C01，stub 更频繁",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【Allow 等待】",
+      "pitfalls_fixed": ["同 C01 stub 修复"],
+      "example_command": "git add … && git commit && git push（sandbox:false 组合命令）"
+    },
+    {
+      "id": "C04",
+      "platform": "cursor",
+      "name": "mcp_tool_approval",
+      "ui_label": "MCP 工具批准",
+      "ui_signs": ["MCP 工具 Run/批准条"],
+      "user_action": "点 Run / Allow",
+      "hook_events": ["preToolUse(MCP:*)", "beforeMCPExecution"],
+      "tl_strategy": "schedule → pending → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【标准1+2】MCP 批准",
+      "pitfalls_fixed": [],
+      "example_command": null
+    },
+    {
+      "id": "C05",
+      "platform": "cursor",
+      "name": "ask_question",
+      "ui_label": "Agent 选择题",
+      "ui_signs": ["AskQuestion", "多选项按钮"],
+      "user_action": "选一项",
+      "hook_events": ["preToolUse(AskQuestion)"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【标准1】AskQuestion",
+      "pitfalls_fixed": [],
+      "example_command": null
+    },
+    {
+      "id": "C06",
+      "platform": "cursor",
+      "name": "switch_mode",
+      "ui_label": "切换 Agent/Plan 模式",
+      "ui_signs": ["SwitchMode", "Switch to Agent / Plan"],
+      "user_action": "确认切换",
+      "hook_events": ["preToolUse(SwitchMode)"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": null,
+      "pitfalls_fixed": [],
+      "example_command": null
+    },
+    {
+      "id": "C07",
+      "platform": "cursor",
+      "name": "exit_plan_mode",
+      "ui_label": "退出 Plan 模式",
+      "ui_signs": ["ExitPlanMode"],
+      "user_action": "确认退出 Plan",
+      "hook_events": ["preToolUse(ExitPlanMode)"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【C07】ExitPlanMode",
+      "pitfalls_fixed": ["2026-06-17：preToolUse matcher 已加 ExitPlanMode"],
+      "example_command": null
+    },
+    {
+      "id": "C08",
+      "platform": "cursor",
+      "name": "task_subagent_launch",
+      "ui_label": "启动子 Agent (Task)",
+      "ui_signs": ["Task 工具", "subagent_type: shell/explore/…"],
+      "user_action": "视版本；Task 常自动跑",
+      "hook_events": ["preToolUse(Task)"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "partial",
+      "hook_registered": true,
+      "self_test": null,
+      "pitfalls_fixed": [],
+      "pitfalls_open": [
+        "Task 可能在无确认框时就 immediate 红灯（偏早）",
+        "与 C12 subagentStart 可能重复触发"
+      ],
+      "example_command": null
+    },
+    {
+      "id": "C09",
+      "platform": "cursor",
+      "name": "generate_image",
+      "ui_label": "生成图片确认",
+      "ui_signs": ["GenerateImage"],
+      "user_action": "确认生成",
+      "hook_events": ["preToolUse(GenerateImage)"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": null,
+      "pitfalls_fixed": [],
+      "example_command": null
+    },
+    {
+      "id": "C10",
+      "platform": "cursor",
+      "name": "smart_mode_block",
+      "ui_label": "Smart Mode / Auto-review 拦截",
+      "ui_signs": [
+        "Allow + 拦截原因",
+        "requestSmartModeApproval",
+        "required_permissions: all / git_write / full_network"
+      ],
+      "user_action": "点 Allow",
+      "hook_events": ["未知 — 日志未见独立 hook_event"],
+      "tl_strategy": "未确认；可能叠在 C01/C02 上",
+      "coverage": "gap",
+      "hook_registered": false,
+      "self_test": null,
+      "pitfalls_open": [
+        "需在出现 Allow 时抓 cursor.hooks.log 确认事件名",
+        "若无 Hook，只能靠 UI 自动化或 Cursor SDK（暂无）"
+      ],
+      "example_command": null
+    },
+    {
+      "id": "C11",
+      "platform": "cursor",
+      "name": "ask_mode_tool_block",
+      "ui_label": "Ask 模式禁止执行",
+      "ui_signs": [
+        "Ask mode cannot run non read-only tools",
+        "Agent 无法调 Shell"
+      ],
+      "user_action": "切 Agent 模式或改设置",
+      "hook_events": ["通常无 beforeShellExecution"],
+      "tl_strategy": "未实现",
+      "coverage": "gap",
+      "hook_registered": false,
+      "self_test": null,
+      "pitfalls_open": ["界面在等用户，但 Hook 仍可能显示黄灯 working"],
+      "example_command": null
+    },
+    {
+      "id": "C12",
+      "platform": "cursor",
+      "name": "subagent_start_gate",
+      "ui_label": "子 Agent 启动门禁",
+      "ui_signs": ["subagentStart", "permission / user_message"],
+      "user_action": "批准子 Agent",
+      "hook_events": ["subagentStart"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【C12】subagentStart",
+      "pitfalls_fixed": ["2026-06-17：已注册 subagentStart → tl-on-wait.sh"],
+      "pitfalls_open": ["并非每次 Task 都会 fire subagentStart"],
+      "example_command": null
+    },
+    {
+      "id": "CL01",
+      "platform": "claude",
+      "name": "permission_request",
+      "ui_label": "Claude Bash/工具权限",
+      "ui_signs": ["PermissionRequest"],
+      "user_action": "批准/拒绝",
+      "hook_events": ["PermissionRequest"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【标准1】PermissionRequest",
+      "pitfalls_fixed": [],
+      "pitfalls_open": ["Cursor 内不支持此事件"],
+      "example_command": null
+    },
+    {
+      "id": "CL02",
+      "platform": "claude",
+      "name": "notification_permission_prompt",
+      "ui_label": "Claude 权限通知",
+      "ui_signs": ["Notification type=permission_prompt"],
+      "user_action": "点通知内操作",
+      "hook_events": ["Notification"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": null,
+      "pitfalls_open": ["仅 Claude adapter；Cursor 忽略 Notification"],
+      "example_command": null
+    },
+    {
+      "id": "CL03",
+      "platform": "claude",
+      "name": "notification_elicitation",
+      "ui_label": "Claude 追问对话框",
+      "ui_signs": ["Notification type=elicitation_dialog"],
+      "user_action": "填写/确认",
+      "hook_events": ["Notification"],
+      "tl_strategy": "immediate → waiting",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": null,
+      "pitfalls_fixed": [],
+      "example_command": null
+    },
+    {
+      "id": "X01",
+      "platform": "cursor",
+      "name": "shell_user_skip",
+      "ui_label": "Run 框点 Skip",
+      "ui_signs": ["Skip", "postToolUseFailure"],
+      "user_action": "Skip（拒绝本次 Shell）",
+      "hook_events": ["postToolUseFailure"],
+      "tl_strategy": "清 pending → working",
+      "coverage": "covered",
+      "hook_registered": true,
+      "self_test": "【X01】Skip 清 pending",
+      "pitfalls_fixed": ["2026-06-17：tl-on-tool-failure.sh"],
+      "example_command": null
+    }
+  ],
+  "safe_shell_patterns": [
+    "ls|pwd|echo|cat|head|tail|wc|which|command -v|test",
+    "git status|diff|log|show|rev-parse|branch",
+    "swift build|test|run",
+    "find|rg|grep",
+    "chmod|cp|mv|mkdir|touch",
+    "pgrep",
+    "open \"…\"",
+    "cd（仅当整条命令链全部 safe 时才 skip）"
+  ],
+  "changelog": [
+    {
+      "date": "2026-06-17",
+      "changes": [
+        "初版 catalog + C01 Allowlist 截图场景",
+        "cd&& 链式判定、stub postToolUse、pending-watch、Tink",
+        "C07 ExitPlanMode matcher、C12 subagentStart、X01 postToolUseFailure"
+      ]
+    }
+  ]
+}

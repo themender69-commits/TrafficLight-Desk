@@ -8,9 +8,11 @@ const MARKER = 'trafficlight-desk';
 const CURSOR_HOOK_ENTRIES = {
   beforeSubmitPrompt: ['tl-on-prompt.sh'],
   postToolUse: ['tl-on-tool.sh'],
-  preToolUse: [{ script: 'tl-on-wait.sh', matcher: 'AskQuestion|AskUserQuestion|SwitchMode|Task|GenerateImage|Shell|MCP:' }],
+  preToolUse: [{ script: 'tl-on-wait.sh', matcher: 'AskQuestion|AskUserQuestion|SwitchMode|ExitPlanMode|Task|GenerateImage|Shell|MCP:' }],
   beforeShellExecution: ['tl-on-wait.sh'],
   beforeMCPExecution: ['tl-on-wait.sh'],
+  postToolUseFailure: ['tl-on-tool-failure.sh'],
+  subagentStart: ['tl-on-wait.sh'],
   stop: ['tl-on-stop.sh'],
   sessionEnd: ['tl-on-session-end.sh'],
 };
