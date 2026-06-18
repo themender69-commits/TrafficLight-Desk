@@ -2,7 +2,7 @@
 
 桌面 AI 工具状态监视器 — 竖条悬浮红绿灯，顶部显示被监控工具的 Logo，下方红 / 黄 / 绿三灯。
 
-> 本机运行、Hook 驱动、不联网。适合在 AI Agent 长时间工作时，扫一眼桌面角标就知道「别催 / 可验收 / 需操作」。
+> 本机运行、Hook 驱动、不联网。适合在 AI Agent 长时间工作时，扫一眼桌面角标就知道「执行中 / 可验收 / 需操作」。
 
 **仓库：** [github.com/themender69-commits/TrafficLight-Desk](https://github.com/themender69-commits/TrafficLight-Desk)
 
